@@ -17,7 +17,13 @@ namespace MongoDB.AspNetCore.OData.Sample.WebApi;
 public class Program
 {
     public static void Main(string[] args)
-        => CreateHostBuilder(args).Build().Run();
+    {
+        var app = CreateHostBuilder(args).Build();
+
+        DatabaseInitializer.Initialize(app.Services);
+
+        app.Run();
+    }
 
     public static IHostBuilder CreateHostBuilder(string[] args) =>
         Host.CreateDefaultBuilder(args)

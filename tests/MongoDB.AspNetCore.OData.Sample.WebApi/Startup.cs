@@ -37,8 +37,6 @@ public class Startup
         }
 
         services.AddSingleton<IMongoClient>(new MongoClient(connectionString));
-        // Seeds the database with test data.
-        services.AddSingleton<IHostedService, DatabaseInitializer>();
 
         var modelBuilder = new ODataConventionModelBuilder();
         modelBuilder.EntitySet<City>("Cities");
