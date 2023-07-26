@@ -30,7 +30,7 @@ public class Startup
 
     public void ConfigureServices(IServiceCollection services)
     {
-        var connectionString = Configuration.GetSection("MongoDb").GetValue<string>("Connection");
+        var connectionString = Configuration.GetSection("MongoDb").GetValue<string>("Uri");
         if (string.IsNullOrEmpty(connectionString))
         {
             throw new InvalidOperationException("Cannot read mongoDb connection settings");

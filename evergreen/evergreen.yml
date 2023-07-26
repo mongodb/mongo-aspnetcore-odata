@@ -1,0 +1,430 @@
+#################################################
+# Evergreen Template for MongoDB AspNetCode OData
+#################################################
+
+# When a task that used to pass starts to fail
+# Go through all versions that may have been skipped to detect
+# when the task started failing
+stepback: true
+
+# Mark a failure as a system/bootstrap failure (purple box) rather then a task
+# failure by default.
+# Actual testing tasks are marked with `type: test`
+command_type: system
+
+# Protect ourself against rogue test case, or curl gone wild, that runs forever
+exec_timeout_secs: 900
+
+# What to do when evergreen hits the timeout (`post:` tasks are run automatically)
+timeout:
+  - command: shell.exec
+    params:
+      script: |
+        ls -la
+        df -h
+
+functions:
+
+  fetch-source:
+    # Executes git clone and applies the submitted patch, if any
+    - command: git.get_project
+      params:
+        directory: mongo-aspnetcore-odata
+    # Applies the subitted patch, if any
+    # Deprecated. Should be removed. But still needed for certain agents (ZAP)
+    - command: git.apply_patch
+    # Make an evergreen exapanstion file with dynamic values
+    - command: shell.exec
+      params:
+        shell: bash
+        working_dir: mongo-aspnetcore-odata
+        script: |
+          PACKAGE_VERSION=$(git describe --tags)
+          # Get the current unique version of this checkout
+          if [ "${is_patch}" = "true" ]; then
+            CURRENT_VERSION=$(git describe)-patch-${version_id}
+          else
+            CURRENT_VERSION=latest
+          fi
+
+          export DRIVERS_TOOLS="$(pwd)/../drivers-tools"
+          export DOTNET_SDK_PATH="$(pwd)/../.dotnet"
+
+          if [ "Windows_NT" = "$OS" ]; then # Magic variable in cygwin
+            # Python has cygwin path problems on Windows. Detect prospective mongo-orchestration home directory
+            export DRIVERS_TOOLS=$(cygpath -m $DRIVERS_TOOLS)
+          else
+            # non windows OSs don't have dotnet in the PATH
+            export PATH=$PATH:/usr/share/dotnet
+          fi
+
+          export MONGO_ORCHESTRATION_HOME="$DRIVERS_TOOLS/.evergreen/orchestration"
+          export MONGODB_BINARIES="$DRIVERS_TOOLS/mongodb/bin"
+          export PROJECT_DIRECTORY="$(pwd)"
+
+          cat <<EOT > expansion.yml
+          PACKAGE_VERSION: "$PACKAGE_VERSION"
+          CURRENT_VERSION: "$CURRENT_VERSION"
+          DRIVERS_TOOLS: "$DRIVERS_TOOLS"
+          MONGO_ORCHESTRATION_HOME: "$MONGO_ORCHESTRATION_HOME"
+          MONGODB_BINARIES: "$MONGODB_BINARIES"
+          PROJECT_DIRECTORY: "$PROJECT_DIRECTORY"
+          DOTNET_SDK_PATH: "$DOTNET_SDK_PATH"
+          PREPARE_SHELL: |
+            set -o errexit
+            set -o xtrace
+            export PACKAGE_VERSION="$PACKAGE_VERSION"
+            export DRIVERS_TOOLS="$DRIVERS_TOOLS"
+            export MONGO_ORCHESTRATION_HOME="$MONGO_ORCHESTRATION_HOME"
+            export MONGODB_BINARIES="$MONGODB_BINARIES"
+            export PROJECT_DIRECTORY="$PROJECT_DIRECTORY"
+            export DOTNET_SDK_PATH="$DOTNET_SDK_PATH"
+            export TMPDIR="$MONGO_ORCHESTRATION_HOME/db"
+            export PATH="$DOTNET_SDK_PATH:$MONGODB_BINARIES:$PATH"
+            export PROJECT="${project}"
+          EOT
+          # See what we've done
+          cat expansion.yml
+
+    # Load the expansion file to make an evergreen variable with the current unique version
+    - command: expansions.update
+      params:
+        file: mongo-aspnetcore-odata/expansion.yml
+
+  install-dependencies:
+    - command: shell.exec
+      params:
+        script: |
+          ${PREPARE_SHELL}
+          OS=${OS} \
+            ${PROJECT_DIRECTORY}/evergreen/install-dependencies.sh
+
+  prepare-resources:
+    - command: shell.exec
+      params:
+        script: |
+          ${PREPARE_SHELL}
+          rm -rf $DRIVERS_TOOLS
+          if [ "${project}" = "drivers-tools" ]; then
+            # If this was a patch build, doing a fresh clone would not actually test the patch
+            cp -R ${PROJECT_DIRECTORY}/ $DRIVERS_TOOLS
+          else
+            git clone https://github.com/mongodb-labs/drivers-evergreen-tools.git $DRIVERS_TOOLS
+          fi
+          echo "{ \"releases\": { \"default\": \"$MONGODB_BINARIES\" }}" > $MONGO_ORCHESTRATION_HOME/orchestration.config
+
+  upload-mo-artifacts:
+    - command: shell.exec
+      params:
+        script: |
+          ${PREPARE_SHELL}
+          find $MONGO_ORCHESTRATION_HOME -name \*.log | xargs tar czf mongodb-logs.tar.gz
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: mongodb-logs.tar.gz
+        remote_file: ${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-mongodb-logs.tar.gz
+        bucket: ${aws_upload_bucket}
+        permissions: public-read
+        content_type: ${content_type|application/x-gzip}
+        display_name: "mongodb-logs.tar.gz"
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: drivers-tools/.evergreen/orchestration/server.log
+        remote_file: ${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-orchestration.log
+        bucket: ${aws_upload_bucket}
+        permissions: public-read
+        content_type: ${content_type|text/plain}
+        display_name: "orchestration.log"
+
+  upload-test-results:
+    - command: attach.xunit_results
+      params:
+        file: ./mongo-aspnetcore-odata/build/test-results/TEST*.xml
+
+  bootstrap-mongo-orchestration:
+    - command: shell.exec
+      params:
+        script: |
+          ${PREPARE_SHELL}
+          MONGODB_VERSION=${VERSION} \
+          STORAGE_ENGINE=${STORAGE_ENGINE} \
+          ORCHESTRATION_FILE=${ORCHESTRATION_FILE} \
+            sh ${DRIVERS_TOOLS}/.evergreen/run-orchestration.sh
+    # run-orchestration generates expansion file with the MONGODB_URI for the cluster
+    - command: expansions.update
+      params:
+        file: mo-expansion.yml
+
+  run-tests:
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: mongo-aspnetcore-odata
+        script: |
+          ${PREPARE_SHELL}
+          DRIVER_VERSION=${DRIVER_VERSION} \
+          OS=${OS} \
+          MONGODB_URI="${MONGODB_URI}" \
+            evergreen/run-tests.sh
+
+  package-pack:
+    - command: shell.exec
+      params:
+        working_dir: mongo-aspnetcore-odata
+        script: |
+          ${PREPARE_SHELL}
+          OS=${OS} \
+          PACKAGE_VERSION=${PACKAGE_VERSION} \
+            evergreen/run-pack.sh
+
+  upload-package:
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: ./mongo-aspnetcore-odata/build/nuget/MongoDB.AspNetCore.OData.${PACKAGE_VERSION}.nupkg
+        remote_file: ${revision}/MongoDB.AspNetCore.OData.${PACKAGE_VERSION}.nupkg
+        bucket: ${aws_upload_bucket}
+        permissions: public-read
+        content_type: ${content_type|application/octet-stream}
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: ./mongo-aspnetcore-odata/build/nuget/MongoDB.AspNetCore.OData.${PACKAGE_VERSION}.snupkg
+        remote_file: ${revision}/MongoDB.AspNetCore.OData.${PACKAGE_VERSION}.snupkg
+        bucket: ${aws_upload_bucket}
+        permissions: public-read
+        content_type: ${content_type|application/octet-stream}
+
+  download-package:
+    - command: s3.get
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: ./mongo-aspnetcore-odata/build/nuget/MongoDB.AspNetCore.OData.${PACKAGE_VERSION}.nupkg
+        remote_file: ${revision}/MongoDB.AspNetCore.OData.${PACKAGE_VERSION}.nupkg
+        bucket: ${aws_upload_bucket}
+    - command: s3.get
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: ./mongo-aspnetcore-odata/build/nuget/MongoDB.AspNetCore.OData.${PACKAGE_VERSION}.snupkg
+        remote_file: ${revision}/MongoDB.AspNetCore.OData.${PACKAGE_VERSION}.snupkg
+        bucket: ${aws_upload_bucket}
+
+  package-smoke-tests:
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: mongo-aspnetcore-odata
+        script: |
+          ${PREPARE_SHELL}
+          OS=${OS} \
+          PACKAGE_VERSION=${PACKAGE_VERSION} \
+          MONGODB_URI="${MONGODB_URI}" \
+            evergreen/run-smoketests.sh
+
+  package-push:
+    - command: shell.exec
+      params:
+        working_dir: mongo-aspnetcore-odata
+        script: |
+          ${PREPARE_SHELL}
+          OS=${OS} \
+          PACKAGE_VERSION=${PACKAGE_VERSION} \
+          NUGET_KEY=${nuget_key} \
+            evergreen/run-push.sh
+
+  cleanup:
+    - command: shell.exec
+      params:
+        script: |
+          ${PREPARE_SHELL}
+          cd "$MONGO_ORCHESTRATION_HOME"
+          # source the mongo-orchestration virtualenv if it exists
+          if [ -f venv/bin/activate ]; then
+            . venv/bin/activate
+          elif [ -f venv/Scripts/activate ]; then
+            . venv/Scripts/activate
+          fi
+          mongo-orchestration stop
+          cd -
+          rm -rf $DRIVERS_TOOLS || true
+
+  fix-absolute-paths:
+    - command: shell.exec
+      params:
+        script: |
+          ${PREPARE_SHELL}
+          for filename in $(find ${DRIVERS_TOOLS} -name \*.json); do
+            perl -p -i -e "s|ABSOLUTE_PATH_REPLACEMENT_TOKEN|${DRIVERS_TOOLS}|g" $filename
+          done
+
+  windows-fix:
+    - command: shell.exec
+      params:
+        script: |
+          if [ "Windows_NT" = "$OS" ]; then
+            ${PREPARE_SHELL}
+            for i in $(find ${DRIVERS_TOOLS}/.evergreen ${PROJECT_DIRECTORY}/evergreen -name \*.sh); do
+              cat $i | tr -d '\r' > $i.new
+              mv $i.new $i
+            done
+            # Copy client certificate because symlinks do not work on Windows.
+            cp ${DRIVERS_TOOLS}/.evergreen/x509gen/client.pem ${MONGO_ORCHESTRATION_HOME}/lib/client.pem
+          fi
+
+  make-files-executable:
+    - command: shell.exec
+      params:
+        script: |
+          ${PREPARE_SHELL}
+          for i in $(find ${DRIVERS_TOOLS}/.evergreen ${PROJECT_DIRECTORY}/evergreen -name \*.sh); do
+            chmod +x $i
+          done
+
+pre:
+  - func: fetch-source
+  - func: prepare-resources
+  - func: windows-fix
+  - func: fix-absolute-paths
+  - func: make-files-executable
+  - func: install-dependencies
+
+post:
+  - func: upload-mo-artifacts
+  - func: cleanup
+
+tasks:
+  - name: test-net50
+    commands:
+      - func: bootstrap-mongo-orchestration
+      - func: run-tests
+      - func: upload-test-results
+
+  - name: package-pack
+    depends_on:
+      - name: test-net50
+        variant: .tests-variant
+    commands:
+      - func: package-pack
+      - func: upload-package
+
+  - name: package-smoke-tests
+    depends_on:
+      - name: package-pack
+        variant: package-pack
+    commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          VERSION: "latest"
+      - func: download-package
+      - func: package-smoke-tests
+      - func: upload-test-results
+
+  - name: package-push
+    depends_on:
+      - name: package-smoke-tests
+        variant: .smoke-tests-variant
+    commands:
+      - func: download-package
+      - func: package-push
+
+axes:
+  - id: version
+    display_name: MongoDB Version
+    values:
+      - id: "latest"
+        display_name: "latest"
+        variables:
+          VERSION: "latest"
+      - id: "rapid"
+        display_name: "rapid"
+        variables:
+          VERSION: "rapid"
+      - id: "7.0"
+        display_name: "7.0"
+        variables:
+          VERSION: "7.0"
+      - id: "6.0"
+        display_name: "6.0"
+        variables:
+          VERSION: "6.0"
+      - id: "5.0"
+        display_name: "5.0"
+        variables:
+          VERSION: "5.0"
+      - id: "4.4"
+        display_name: "4.4"
+        variables:
+          VERSION: "4.4"
+      - id: "4.2"
+        display_name: "4.2"
+        variables:
+          VERSION: "4.2"
+
+  - id: os
+    display_name: OS
+    values:
+      - id: "windows-64"
+        display_name: "Windows 64-bit"
+        variables:
+          OS: "windows-64"
+        run_on: windows-64-vs2017-test
+      - id: "ubuntu-1804"
+        display_name: "Ubuntu 18.04"
+        variables:
+          OS: "ubuntu-1804"
+        run_on: ubuntu1804-test
+      - id: "macos-1100"
+        display_name: "macOS 11.00"
+        variables:
+          OS: "macos-1100"
+        run_on: macos-1100
+
+  - id: driver
+    display_name: MongoDB.Driver Version
+    values:
+      - id: "latest"
+        display_name: "latest"
+        variables:
+          DRIVER_VERSION: "latest"
+      - id: "2.21"
+        display_name: "2.21"
+        variables:
+          DRIVER_VERSION: "2.21"
+
+buildvariants:
+- matrix_name: "tests"
+  matrix_spec: { version: "*", os: "*", driver: "*" }
+  display_name: "${driver} Driver on ${os} with ${version} Server"
+  tags: ["tests-variant"]
+  tasks:
+    - name: test-net50
+
+- name: package-pack
+  git_tag_only: true
+  display_name: "Package Pack"
+  run_on: ubuntu1804-small
+  tasks:
+    - name: package-pack
+
+- matrix_name: "smoke-tests"
+  matrix_spec: { version: "latest", os: "*", driver: "latest" }
+  display_name: "Smoke tests on ${os}"
+  tags: ["smoke-tests-variant"]
+  tasks:
+    - name: package-smoke-tests
+      git_tag_only: true
+
+- name: package-push
+  git_tag_only: true
+  display_name: "Package Push"
+  run_on: ubuntu1804-small
+  tasks:
+    - name: package-push
