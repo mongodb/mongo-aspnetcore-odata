@@ -19,16 +19,27 @@ using MongoDB.Driver;
 
 namespace MongoDB.AspNetCore.OData.Sample.WebApi;
 
-internal static class DatabaseInitializer
+internal class DatabaseInitializer : IHostedService
 {
-    public static void Initialize(IServiceProvider services)
+    private readonly IMongoClient _mongoClient;
+
+    public DatabaseInitializer(IMongoClient mongoClient)
     {
-        var mongoClient = services.GetRequiredService<IMongoClient>();
-        var database = mongoClient.GetDatabase("odata-examples");
+        _mongoClient = mongoClient;
+    }
+
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        var database = _mongoClient.GetDatabase("odata-examples");
 
         BulkUpsert(database.GetCollection<Country>("countries"), Countries(), d => d.Id);
         BulkUpsert(database.GetCollection<City>("cities"), Cities(), d => d.Id);
+
+        return Task.CompletedTask;
     }
+
+    public Task StopAsync(CancellationToken cancellationToken)
+        => Task.CompletedTask;
 
     private static void BulkUpsert<TDocument, TField>(
         IMongoCollection<TDocument> collection,
