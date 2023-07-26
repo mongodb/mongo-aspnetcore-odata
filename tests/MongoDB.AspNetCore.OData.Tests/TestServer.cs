@@ -37,6 +37,7 @@ internal static class TestServer
     public static void TestServerInitialize(TestContext testContext)
     {
         s_applicationFactory = new WebApplicationFactory<Program>();
+        DatabaseInitializer.Initialize(s_applicationFactory.Services);
         s_httpClient = s_applicationFactory.CreateClient();
     }
 
