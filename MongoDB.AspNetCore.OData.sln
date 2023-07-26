@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MongoDB.AspNetCore.OData", "src\MongoDB.AspNetCore.OData\MongoDB.AspNetCore.OData.csproj", "{B133C168-77E6-4E90-944B-7211922EC640}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MongoDB.AspNetCore.OData.Sample.WebApi", "tests\MongoDB.AspNetCore.OData.Sample.WebApi\MongoDB.AspNetCore.OData.Sample.WebApi.csproj", "{AB43D55D-0DDB-46A6-813E-C019C8434534}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MongoDB.AspNetCore.OData.Tests", "tests\MongoDB.AspNetCore.OData.Tests\MongoDB.AspNetCore.OData.Tests.csproj", "{1E21F107-FA97-432F-83CB-6AF7AA863600}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B133C168-77E6-4E90-944B-7211922EC640}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B133C168-77E6-4E90-944B-7211922EC640}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B133C168-77E6-4E90-944B-7211922EC640}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B133C168-77E6-4E90-944B-7211922EC640}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AB43D55D-0DDB-46A6-813E-C019C8434534}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AB43D55D-0DDB-46A6-813E-C019C8434534}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AB43D55D-0DDB-46A6-813E-C019C8434534}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AB43D55D-0DDB-46A6-813E-C019C8434534}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1E21F107-FA97-432F-83CB-6AF7AA863600}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1E21F107-FA97-432F-83CB-6AF7AA863600}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1E21F107-FA97-432F-83CB-6AF7AA863600}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1E21F107-FA97-432F-83CB-6AF7AA863600}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

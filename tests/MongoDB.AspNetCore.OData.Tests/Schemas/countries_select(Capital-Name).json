@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "@odata.context": {
+      "type": "string"
+    },
+    "value": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "Capital": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "Name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "Name"
+            ]
+          }
+        },
+        "required": [
+          "Capital"
+        ]
+      }
+    }
+  },
+  "required": [
+    "@odata.context",
+    "value"
+  ]
+}
