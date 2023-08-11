@@ -13,6 +13,8 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.5.0" />
     <PackageReference Include="MSTest.TestAdapter" Version="2.2.10" />
     <PackageReference Include="MSTest.TestFramework" Version="2.2.10" />
+    <!-- We need JunitXml.TestLogger to push unit test results to Evergreen -->
+    <PackageReference Include="JunitXml.TestLogger" Version="3.0.134" />
   </ItemGroup>
 
   <ItemGroup>

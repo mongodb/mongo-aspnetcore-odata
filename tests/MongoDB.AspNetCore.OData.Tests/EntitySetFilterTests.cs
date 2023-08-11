@@ -128,13 +128,11 @@ public class EntitySetFilterTests
         //     "/odata/Cities?$filter=substring(Name, 4, 2) eq 'Yo'",
         //     item => item.Name.Substring(4, 2) == "Yo"
         // ),
-        // This test is failing with MongoDB.Driver v 2.20.0
-        // Uncomment it when the CSHARP-4695 will get released
-        // (
-        //     "concat",
-        //     "/odata/Cities?$filter=concat(Name, CountryId) eq 'WashingtonUS'",
-        //     item => string.Concat(item.Name, item.CountryId) == "WashingtonUS"
-        // ),
+        (
+            "concat",
+            "/odata/Cities?$filter=concat(Name, CountryId) eq 'WashingtonUS'",
+            item => string.Concat(item.Name, item.CountryId) == "WashingtonUS"
+        ),
         (
             "tolower",
             "/odata/Cities?$filter=tolower(Name) eq 'ottawa'",
@@ -145,13 +143,11 @@ public class EntitySetFilterTests
             "/odata/Cities?$filter=toupper(Name) eq 'OTTAWA'",
             item => item.Name.ToUpper() == "OTTAWA"
         ),
-        // This test is failing with MongoDB.Driver v 2.20.0
-        // Uncomment it when the CSHARP-4698 will get released
-        // (
-        //     "matchesPattern",
-        //     "/odata/Cities?$filter=matchesPattern(Name, '%5ENew.*k$')",
-        //     item => Regex.IsMatch(item.Name, "^New.*k$")
-        // ),
+        (
+            "matchesPattern",
+            "/odata/Cities?$filter=matchesPattern(Name, '%5ENew.*k$')",
+            item => Regex.IsMatch(item.Name, "^New.*k$")
+        ),
         (
             "trim",
             "/odata/Cities?$filter=trim(Name) eq 'Ottawa'",
@@ -167,13 +163,11 @@ public class EntitySetFilterTests
             "/odata/Cities?$filter=floor(Density) eq 1419",
             item => (int)Math.Floor(item.Density) == 1419
         ),
-        // This test is failing with MongoDB.Driver v 2.20.0
-        // Uncomment it when the CSHARP-4696 will get released
-        // (
-        //     "round",
-        //     "/odata/Cities?$filter=round(Density) eq 1420",
-        //     item => (int)Math.Round(item.Density, 0) == 1420
-        // ),
+        (
+            "round",
+            "/odata/Cities?$filter=round(Density) eq 1420",
+            item => (int)Math.Round(item.Density, 0) == 1420
+        ),
         (
             "add",
             "/odata/Cities?$filter=(Population add 100) eq 989667",
@@ -184,13 +178,11 @@ public class EntitySetFilterTests
             "/odata/Cities?$filter=(Population sub 100) eq 989467",
             item => item.Population - 100 == 989467
         ),
-        // This test is failing with MongoDB.Driver v 2.20.0
-        // Uncomment it when the CSHARP-4697 will get released
-        // (
-        //     "negation",
-        //     "/odata/Cities?$filter=(-Population) eq -989567",
-        //     item => -item.Population == -989567
-        // ),
+        (
+            "negation",
+            "/odata/Cities?$filter=(-Population) eq -989567",
+            item => -item.Population == -989567
+        ),
         (
             "mul",
             "/odata/Cities?$filter=(Population mul 10) eq 9895670",
