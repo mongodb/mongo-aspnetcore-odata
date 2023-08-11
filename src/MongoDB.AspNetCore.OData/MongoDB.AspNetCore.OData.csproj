@@ -10,6 +10,7 @@
   <PropertyGroup>
     <AssemblyTitle>MongoDB.AspNetCore.OData</AssemblyTitle>
     <Product>MongoDB.AspNetCore.OData</Product>
+    <PackageId>MongoDB.AspNetCore.OData</PackageId>
     <Description>Official MongoDB integration library for ASP.NET Core OData.</Description>
   </PropertyGroup>
 
