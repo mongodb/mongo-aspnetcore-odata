@@ -401,7 +401,7 @@ axes:
 
 buildvariants:
 - matrix_name: "tests"
-  matrix_spec: { version: "*", os: "*", driver: "*" }
+  matrix_spec: { version: "*", os: ["windows-64", "ubuntu-1804"], driver: "*" }
   display_name: "${driver} Driver on ${os} with ${version} Server"
   tags: ["tests-variant"]
   tasks:
@@ -415,7 +415,7 @@ buildvariants:
     - name: package-pack
 
 - matrix_name: "smoke-tests"
-  matrix_spec: { version: "latest", os: "*", driver: "latest" }
+  matrix_spec: { version: "latest", os: ["windows-64", "ubuntu-1804"], driver: "latest" }
   display_name: "Smoke tests on ${os}"
   tags: ["smoke-tests-variant"]
   tasks:
