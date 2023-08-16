@@ -1,6 +1,6 @@
 # MongoDB AspNetCore OData
 
-Integration library build on top of [MongoDB.AspNetCore.OData](https://www.nuget.org/packages/MongoDB.AspNetCore.OData/) package to enable OData endpoints for MongoDB.
+Integration library built on top of [MongoDB.AspNetCore.OData](https://www.nuget.org/packages/MongoDB.AspNetCore.OData/) package to enable OData endpoints for MongoDB.
 
 ## Package installation
 ```sh
