@@ -233,12 +233,10 @@ functions:
     - command: shell.exec
       params:
         working_dir: mongo-aspnetcore-odata
+        env:
+          NUGET_KEY: ${nuget_key}
         script: |
-          ${PREPARE_SHELL}
-          OS=${OS} \
-          PACKAGE_VERSION=${PACKAGE_VERSION} \
-          NUGET_KEY=${nuget_key} \
-            evergreen/run-push.sh
+          PACKAGE_VERSION=${PACKAGE_VERSION} evergreen/run-push.sh
 
   cleanup:
     - command: shell.exec
