@@ -15,7 +15,7 @@ ODATA_TESTS_PROJECT="./tests/MongoDB.AspNetCore.OData.Tests/MongoDB.AspNetCore.O
 echo Retargeting API tests to use generated package instead of project dependency...
 dotnet clean "./MongoDB.AspNetCore.OData.sln"
 
-dotnet nuget add source "./build/nuget" -n local --configfile "./nuget.config"
+dotnet nuget add source "./artifacts/nuget" -n local --configfile "./nuget.config"
 dotnet nuget locals temp -c
 dotnet remove "$ODATA_SAMPLE_PROJECT" reference "$ODATA_PROJECT"
 dotnet add "$ODATA_SAMPLE_PROJECT" package "MongoDB.AspNetCore.OData" -v "$PACKAGE_VERSION"

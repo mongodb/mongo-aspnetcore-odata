@@ -153,7 +153,7 @@ functions:
           MONGODB_VERSION=${VERSION} \
           STORAGE_ENGINE=${STORAGE_ENGINE} \
           ORCHESTRATION_FILE=${ORCHESTRATION_FILE} \
-            sh ${DRIVERS_TOOLS}/.evergreen/run-orchestration.sh
+            bash ${DRIVERS_TOOLS}/.evergreen/run-orchestration.sh
     # run-orchestration generates expansion file with the MONGODB_URI for the cluster
     - command: expansions.update
       params:
@@ -186,7 +186,7 @@ functions:
       params:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
-        local_file: ./mongo-aspnetcore-odata/build/nuget/MongoDB.AspNetCore.OData.${PACKAGE_VERSION}.nupkg
+        local_file: ./mongo-aspnetcore-odata/artifacts/nuget/MongoDB.AspNetCore.OData.${PACKAGE_VERSION}.nupkg
         remote_file: ${revision}/MongoDB.AspNetCore.OData.${PACKAGE_VERSION}.nupkg
         bucket: ${aws_upload_bucket}
         permissions: public-read
@@ -195,7 +195,7 @@ functions:
       params:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
-        local_file: ./mongo-aspnetcore-odata/build/nuget/MongoDB.AspNetCore.OData.${PACKAGE_VERSION}.snupkg
+        local_file: ./mongo-aspnetcore-odata/artifacts/nuget/MongoDB.AspNetCore.OData.${PACKAGE_VERSION}.snupkg
         remote_file: ${revision}/MongoDB.AspNetCore.OData.${PACKAGE_VERSION}.snupkg
         bucket: ${aws_upload_bucket}
         permissions: public-read
@@ -206,14 +206,14 @@ functions:
       params:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
-        local_file: ./mongo-aspnetcore-odata/build/nuget/MongoDB.AspNetCore.OData.${PACKAGE_VERSION}.nupkg
+        local_file: ./mongo-aspnetcore-odata/artifacts/nuget/MongoDB.AspNetCore.OData.${PACKAGE_VERSION}.nupkg
         remote_file: ${revision}/MongoDB.AspNetCore.OData.${PACKAGE_VERSION}.nupkg
         bucket: ${aws_upload_bucket}
     - command: s3.get
       params:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
-        local_file: ./mongo-aspnetcore-odata/build/nuget/MongoDB.AspNetCore.OData.${PACKAGE_VERSION}.snupkg
+        local_file: ./mongo-aspnetcore-odata/artifacts/nuget/MongoDB.AspNetCore.OData.${PACKAGE_VERSION}.snupkg
         remote_file: ${revision}/MongoDB.AspNetCore.OData.${PACKAGE_VERSION}.snupkg
         bucket: ${aws_upload_bucket}
 
@@ -381,11 +381,11 @@ axes:
         variables:
           OS: "ubuntu-1804"
         run_on: ubuntu1804-test
-      - id: "macos-1100"
-        display_name: "macOS 11.00"
+      - id: "ubuntu-2004"
+        display_name: "Ubuntu 20.04"
         variables:
-          OS: "macos-1100"
-        run_on: macos-1100
+          OS: "ubuntu-2004"
+        run_on: ubuntu2004-test
 
   - id: driver
     display_name: MongoDB.Driver Version
@@ -398,10 +398,29 @@ axes:
         display_name: "2.21"
         variables:
           DRIVER_VERSION: "2.21"
+      - id: "2.22"
+        display_name: "2.22"
+        variables:
+          DRIVER_VERSION: "2.22"
+      - id: "2.23"
+        display_name: "2.23"
+        variables:
+          DRIVER_VERSION: "2.23"
+      - id: "2.24"
+        display_name: "2.24"
+        variables:
+          DRIVER_VERSION: "2.24"
 
 buildvariants:
 - matrix_name: "tests"
-  matrix_spec: { version: "*", os: ["windows-64", "ubuntu-1804"], driver: "*" }
+  matrix_spec: { version: ["4.2", "4.4", "5.0", "6.0"], os: ["windows-64", "ubuntu-1804"], driver: "*" }
+  display_name: "${driver} Driver on ${os} with ${version} Server"
+  tags: ["tests-variant"]
+  tasks:
+    - name: test-net50
+
+- matrix_name: "tests-7.0+"
+  matrix_spec: { version: ["7.0", "latest", "rapid"], os: ["windows-64", "ubuntu-2004"], driver: "*" }
   display_name: "${driver} Driver on ${os} with ${version} Server"
   tags: ["tests-variant"]
   tasks:

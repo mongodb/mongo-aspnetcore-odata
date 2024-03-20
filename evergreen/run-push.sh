@@ -9,4 +9,4 @@ fi
 # validate "clear" version. x.y.z[-abc1]
 
 echo Pushing nuget package...
-dotnet nuget push ./build/nuget/MongoDB.AspNetCore.OData."$PACKAGE_VERSION".nupkg  -s https://api.nuget.org/v3/index.json -k "$NUGET_KEY"
+dotnet nuget push ./artifacts/nuget/MongoDB.AspNetCore.OData."$PACKAGE_VERSION".nupkg  -s https://api.nuget.org/v3/index.json -k "$NUGET_KEY"
