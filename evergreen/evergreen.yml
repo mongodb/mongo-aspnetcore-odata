@@ -236,6 +236,7 @@ functions:
         env:
           NUGET_KEY: ${nuget_key}
         script: |
+          ${PREPARE_SHELL}
           PACKAGE_VERSION=${PACKAGE_VERSION} evergreen/run-push.sh
 
   cleanup:
@@ -432,7 +433,7 @@ buildvariants:
     - name: package-pack
 
 - matrix_name: "smoke-tests"
-  matrix_spec: { version: "latest", os: ["windows-64", "ubuntu-1804"], driver: "latest" }
+  matrix_spec: { version: "latest", os: ["windows-64", "ubuntu-2004"], driver: "latest" }
   display_name: "Smoke tests on ${os}"
   tags: ["smoke-tests-variant"]
   tasks:
