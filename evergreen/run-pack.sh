@@ -10,4 +10,4 @@ fi
 echo Creating nuget package...
 
 dotnet clean ./MongoDB.AspNetCore.OData.sln
-dotnet pack ./MongoDB.AspNetCore.OData.sln -o ./build/nuget -c Release -p:Version="$PACKAGE_VERSION" --include-symbols -p:SymbolPackageFormat=snupkg
+dotnet pack ./MongoDB.AspNetCore.OData.sln -o ./artifacts/nuget -c Release -p:Version="$PACKAGE_VERSION" --include-symbols -p:SymbolPackageFormat=snupkg -p:ContinuousIntegrationBuild=true
