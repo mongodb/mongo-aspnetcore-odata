@@ -47,12 +47,13 @@ functions:
             CURRENT_VERSION=latest
           fi
 
-          export DRIVERS_TOOLS="$(pwd)/../drivers-tools"
           export DOTNET_SDK_PATH="$(pwd)/../.dotnet"
+          export DRIVERS_TOOLS="$(pwd)/../drivers-tools"
 
           if [ "Windows_NT" = "$OS" ]; then # Magic variable in cygwin
             # Python has cygwin path problems on Windows. Detect prospective mongo-orchestration home directory
             export DRIVERS_TOOLS=$(cygpath -m $DRIVERS_TOOLS)
+            export DOTNET_SDK_PATH=$(cygpath -m $DOTNET_SDK_PATH)
           else
             # non windows OSs don't have dotnet in the PATH
             export PATH=$PATH:/usr/share/dotnet

@@ -21,4 +21,4 @@ then
 fi
 
 dotnet clean "./MongoDB.AspNetCore.OData.sln"
-dotnet test "./MongoDB.AspNetCore.OData.sln" -e MONGODB__URI="${MONGODB_URI}" --results-directory ./build/test-results --logger "junit;verbosity=detailed;LogFileName=TEST_{assembly}.xml;FailureBodyFormat=Verbose"
+dotnet test "./MongoDB.AspNetCore.OData.sln" -e MONGODB__URI="${MONGODB_URI}" --results-directory ./build/test-results --logger "junit;verbosity=detailed;LogFileName=TEST-{assembly}.xml;FailureBodyFormat=Verbose" --logger "console;verbosity=detailed"
