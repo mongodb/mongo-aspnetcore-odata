@@ -106,12 +106,7 @@ functions:
         script: |
           ${PREPARE_SHELL}
           rm -rf $DRIVERS_TOOLS
-          if [ "${project}" = "drivers-tools" ]; then
-            # If this was a patch build, doing a fresh clone would not actually test the patch
-            cp -R ${PROJECT_DIRECTORY}/ $DRIVERS_TOOLS
-          else
-            git clone https://github.com/mongodb-labs/drivers-evergreen-tools.git $DRIVERS_TOOLS
-          fi
+          git clone https://github.com/mongodb-labs/drivers-evergreen-tools.git $DRIVERS_TOOLS
           echo "{ \"releases\": { \"default\": \"$MONGODB_BINARIES\" }}" > $MONGO_ORCHESTRATION_HOME/orchestration.config
 
   upload-mo-artifacts:
@@ -182,6 +177,21 @@ functions:
           PACKAGE_VERSION=${PACKAGE_VERSION} \
             evergreen/run-pack.sh
 
+  sign-packages:
+    - command: shell.exec
+      params:
+        shell: bash
+        working_dir: mongo-aspnetcore-odata
+        include_expansions_in_env:
+          - "ARTIFACTORY_PASSWORD"
+          - "ARTIFACTORY_USERNAME"
+          - "AZURE_NUGET_SIGN_TENANT_ID"
+          - "AZURE_NUGET_SIGN_CLIENT_ID"
+          - "AZURE_NUGET_SIGN_CLIENT_SECRET"
+        script: |
+          ${PREPARE_SHELL}
+          . ./evergreen/sign-packages.sh
+
   upload-package:
     - command: s3.put
       params:
@@ -235,10 +245,50 @@ functions:
       params:
         working_dir: mongo-aspnetcore-odata
         env:
-          NUGET_KEY: ${nuget_key}
+          NUGET_SIGN_CERTIFICATE_FINGERPRINT: ${NUGET_SIGN_CERTIFICATE_FINGERPRINT}
+          PACKAGES_SOURCE: ${PACKAGES_SOURCE}
+          PACKAGES_SOURCE_KEY: ${PACKAGES_SOURCE_KEY}
         script: |
           ${PREPARE_SHELL}
           PACKAGE_VERSION=${PACKAGE_VERSION} evergreen/run-push.sh
+
+  trace-artifacts:
+    - command: papertrail.trace
+      params:
+        key_id: ${papertrail_key_id}
+        secret_key: ${papertrail_secret_key}
+        product: mongo-aspnetcore-odata
+        version: ${PACKAGE_VERSION}
+        filenames:
+          - "mongo-aspnetcore-odata/artifacts/nuget/MongoDB.AspNetCore.OData.${PACKAGE_VERSION}.nupkg"
+          - "mongo-aspnetcore-odata/artifacts/nuget/MongoDB.AspNetCore.OData.${PACKAGE_VERSION}.snupkg"
+
+  generate-ssdlc-report:
+    - command: shell.exec
+      params:
+        working_dir: mongo-aspnetcore-odata
+        env:
+          PRODUCT_NAME: mongo-aspnetcore-odata
+          github_commit: ${github_commit}
+        script: |
+          ${PREPARE_SHELL}
+          ./evergreen/generate-ssdlc-report.sh
+    - command: ec2.assume_role
+      params:
+        role_arn: ${UPLOAD_SSDLC_RELEASE_ASSETS_ROLE_ARN}
+    - command: s3.put
+      params:
+        aws_key: ${AWS_ACCESS_KEY_ID}
+        aws_secret: ${AWS_SECRET_ACCESS_KEY}
+        aws_session_token: ${AWS_SESSION_TOKEN}
+        local_file: ./mongo-aspnetcore-odata/artifacts/ssdlc/ssdlc_compliance_report.md
+        remote_file: mongo-aspnetcore-odata/${PACKAGE_VERSION}/ssdlc_compliance_report.md
+        bucket: csharp-driver-release-assets
+        region: us-west-2
+        permissions: private
+        content_type: text/markdown
+        display_name: ssdlc_compliance_report.md
+
 
   cleanup:
     - command: shell.exec
@@ -308,11 +358,9 @@ tasks:
       - func: upload-test-results
 
   - name: package-pack
-    depends_on:
-      - name: test-net50
-        variant: .tests-variant
     commands:
       - func: package-pack
+      - func: sign-packages
       - func: upload-package
 
   - name: package-smoke-tests
@@ -327,13 +375,35 @@ tasks:
       - func: package-smoke-tests
       - func: upload-test-results
 
-  - name: package-push
+  - name: package-push-nuget
     depends_on:
+      - name: package-pack
+        variant: package-pack
       - name: package-smoke-tests
         variant: .smoke-tests-variant
     commands:
       - func: download-package
       - func: package-push
+        vars:
+          PACKAGES_SOURCE: "https://api.nuget.org/v3/index.json"
+          PACKAGES_SOURCE_KEY: ${nuget_key}
+
+  - name: package-push-myget
+    depends_on:
+      - name: package-pack
+        variant: package-pack
+    commands:
+      - func: download-package
+      - func: package-push
+        vars:
+          PACKAGES_SOURCE: "https://www.myget.org/F/mongodb/api/v3/index.json"
+          PACKAGES_SOURCE_KEY: ${myget_api_key}
+
+  - name: generate-ssdlc-reports
+    commands:
+      - func: download-package
+      - func: trace-artifacts
+      - func: generate-ssdlc-report
 
 axes:
   - id: version
@@ -427,9 +497,8 @@ buildvariants:
     - name: test-net50
 
 - name: package-pack
-  git_tag_only: true
   display_name: "Package Pack"
-  run_on: ubuntu1804-small
+  run_on: ubuntu2004-small
   tasks:
     - name: package-pack
 
@@ -441,9 +510,29 @@ buildvariants:
     - name: package-smoke-tests
       git_tag_only: true
 
-- name: package-push
+- name: package-push-nuget
   git_tag_only: true
-  display_name: "Package Push"
-  run_on: ubuntu1804-small
+  display_name: "Package Push (nuget)"
+  run_on: ubuntu2004-small
+  tags: ["package-push"]
   tasks:
-    - name: package-push
+    - name: package-push-nuget
+
+- name: package-push-myget
+  display_name: "Package Push (myget)"
+  run_on: ubuntu2004-small
+  tags: ["package-push"]
+  tasks:
+    - name: package-push-myget
+
+- name: ssdlc-reports
+  display_name: "SSDLC Reports"
+  git_tag_only: true
+  run_on: ubuntu2004-small
+  tags: ["release-tag"]
+  tasks:
+    - name: generate-ssdlc-reports
+      git_tag_only: true
+      depends_on:
+        - name: package-push-nuget
+          variant: ".package-push"
