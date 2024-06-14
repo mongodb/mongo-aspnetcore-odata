@@ -270,6 +270,7 @@ functions:
         env:
           PRODUCT_NAME: mongo-aspnetcore-odata
           github_commit: ${github_commit}
+          NUGET_SIGN_CERTIFICATE_FINGERPRINT: ${NUGET_SIGN_CERTIFICATE_FINGERPRINT}
         script: |
           ${PREPARE_SHELL}
           ./evergreen/generate-ssdlc-report.sh
@@ -532,7 +533,6 @@ buildvariants:
   tags: ["release-tag"]
   tasks:
     - name: generate-ssdlc-reports
-      git_tag_only: true
       depends_on:
         - name: package-push-nuget
           variant: ".package-push"
