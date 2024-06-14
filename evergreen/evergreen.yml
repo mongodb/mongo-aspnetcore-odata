@@ -290,7 +290,6 @@ functions:
         content_type: text/markdown
         display_name: ssdlc_compliance_report.md
 
-
   cleanup:
     - command: shell.exec
       params:
