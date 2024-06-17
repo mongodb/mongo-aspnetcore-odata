@@ -263,6 +263,29 @@ functions:
           - "mongo-aspnetcore-odata/artifacts/nuget/MongoDB.AspNetCore.OData.${PACKAGE_VERSION}.nupkg"
           - "mongo-aspnetcore-odata/artifacts/nuget/MongoDB.AspNetCore.OData.${PACKAGE_VERSION}.snupkg"
 
+  download-and-promote-augmented-sbom-to-s3-bucket:
+    - command: shell.exec
+      params:
+        working_dir: mongo-aspnetcore-odata
+        include_expansions_in_env:
+          - "SILK_CLIENT_ID"
+          - "SILK_CLIENT_SECRET"
+        script: |
+          ${PREPARE_SHELL}
+          ./evergreen/download-augmented-sbom.sh
+    - command: s3.put
+      params:
+        aws_key: ${AWS_ACCESS_KEY_ID}
+        aws_secret: ${AWS_SECRET_ACCESS_KEY}
+        aws_session_token: ${AWS_SESSION_TOKEN}
+        local_file: ./mongo-aspnetcore-odata/artifacts/ssdlc/augmented-sbom.json
+        remote_file: mongo-aspnetcore-odata/${PACKAGE_VERSION}/augmented-sbom.json
+        bucket: csharp-driver-release-assets
+        region: us-west-2
+        permissions: private
+        content_type: application/json
+        display_name: augmented-sbom.json
+        
   generate-ssdlc-report:
     - command: shell.exec
       params:
@@ -274,9 +297,6 @@ functions:
         script: |
           ${PREPARE_SHELL}
           ./evergreen/generate-ssdlc-report.sh
-    - command: ec2.assume_role
-      params:
-        role_arn: ${UPLOAD_SSDLC_RELEASE_ASSETS_ROLE_ARN}
     - command: s3.put
       params:
         aws_key: ${AWS_ACCESS_KEY_ID}
@@ -401,8 +421,12 @@ tasks:
 
   - name: generate-ssdlc-reports
     commands:
+      - command: ec2.assume_role
+        params:
+          role_arn: ${UPLOAD_SSDLC_RELEASE_ASSETS_ROLE_ARN}
       - func: download-package
       - func: trace-artifacts
+      - func: download-and-promote-augmented-sbom-to-s3-bucket
       - func: generate-ssdlc-report
 
 axes:
