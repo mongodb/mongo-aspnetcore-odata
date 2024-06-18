@@ -37,6 +37,8 @@ public sealed class MongoEnableQueryAttribute : EnableQueryAttribute
         nameof(ApplySelectExpand),
         BindingFlags.Static | BindingFlags.NonPublic);
 
+    private static MongoExpressionRewriter __updater = new MongoExpressionRewriter();
+
     public MongoEnableQueryAttribute()
     {
         AllowedQueryOptions =
@@ -81,8 +83,7 @@ public sealed class MongoEnableQueryAttribute : EnableQueryAttribute
 
     private Expression GetSafeExpression(IQueryable queryable)
     {
-        var updater = new UnsafeMethodUpdater();
-        return updater.Visit(queryable.Expression);
+        return __updater.Visit(queryable.Expression);
     }
 
     public override void OnActionExecuted(ActionExecutedContext actionExecutedContext)
