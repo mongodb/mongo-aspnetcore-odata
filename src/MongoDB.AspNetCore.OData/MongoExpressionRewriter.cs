@@ -26,10 +26,12 @@ public class MongoExpressionRewriter : ExpressionVisitor
     protected override Expression VisitMethodCall(MethodCallExpression node) =>
         node.Method.Name switch
         {
+            // Replace oData substring methods with System substring methods to avoid incompatibility with Mongo LINQ Provider
             "SubstringStart" => Expression.Call(Visit(node.Arguments[0]), _substringWithStart,
                 Visit(node.Arguments[1])),
             "SubstringStartAndLength" => Expression.Call(Visit(node.Arguments[0]), _substringWithLength,
                 Visit(node.Arguments[1]), Visit(node.Arguments[2])),
+            // Keep all other methods the same
             _ => base.VisitMethodCall(node)
         };
 }

@@ -83,6 +83,7 @@ public sealed class MongoEnableQueryAttribute : EnableQueryAttribute
 
     private Expression GetRewrittenExpression(IQueryable queryable)
     {
+        // Use MongoExpressionRewriter to update the substring methods
         return __updater.Visit(queryable.Expression);
     }
 
