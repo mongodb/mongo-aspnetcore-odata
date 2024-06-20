@@ -15,6 +15,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -35,6 +36,8 @@ public sealed class MongoEnableQueryAttribute : EnableQueryAttribute
     private static readonly MethodInfo s_applySelectExpandMethodInfo = typeof(MongoEnableQueryAttribute).GetMethod(
         nameof(ApplySelectExpand),
         BindingFlags.Static | BindingFlags.NonPublic);
+
+    private static MongoExpressionRewriter __updater = new MongoExpressionRewriter();
 
     public MongoEnableQueryAttribute()
     {
@@ -58,6 +61,9 @@ public sealed class MongoEnableQueryAttribute : EnableQueryAttribute
 
         var ignoreQueryOptions = AllowedQueryOptions.Select | AllowedQueryOptions.Expand;
         queryable = queryOptions.ApplyTo(queryable, ignoreQueryOptions);
+        
+        queryable = RewriteExpression(queryable);
+
         if (queryOptions.Request.IsCountRequest())
         {
             // No need to apply projection and stream items for {entity_set}/$count request.
@@ -71,6 +77,13 @@ public sealed class MongoEnableQueryAttribute : EnableQueryAttribute
         }
 
         return queryable;
+    }
+
+    private IQueryable RewriteExpression(IQueryable queryable)
+    {
+        // Use MongoExpressionRewriter to rewrite non-translatable methods if needed.
+        var newExpr = __updater.Visit(queryable.Expression);
+        return queryable.Provider.CreateQuery(newExpr);
     }
 
     public override void OnActionExecuted(ActionExecutedContext actionExecutedContext)
