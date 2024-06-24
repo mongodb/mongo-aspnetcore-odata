@@ -290,5 +290,15 @@ public class EntitySetFilterTests
         //     "/odata/Cities?$filter=time(Date) eq 06:10:36",
         //     item => item.Date.ToUniversalTime().TimeOfDay == new TimeSpan(6, 10, 36)
         // ),
+        (
+            "now",
+            "/odata/Cities?filter=Date lt now()",
+            item => item.Date < DateTime.Now
+        ),
+        (
+            "cast",
+            "/odata/Cities?$filter=cast(Population, Edm.Int64) gt 10000000",
+            item => Convert.ToInt64(item.Population) > 10000000
+        ),
     };
 }
