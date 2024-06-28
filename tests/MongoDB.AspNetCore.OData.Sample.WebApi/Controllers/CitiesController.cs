@@ -29,7 +29,7 @@ public class CitiesController : ODataController
         _cities = database.GetCollection<City>("cities").AsQueryable();
     }
 
-    [MongoEnableQuery]
+    [MongoEnableQuery(PageSize = 20)]
     public ActionResult Get()
     {
         return Ok(_cities);

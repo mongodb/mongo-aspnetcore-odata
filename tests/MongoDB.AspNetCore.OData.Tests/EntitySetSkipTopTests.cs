@@ -35,4 +35,21 @@ public class EntitySetSkipTopTests
         var valueNode = document.RootElement.GetProperty("value");
         Assert.AreEqual(top, valueNode.GetArrayLength());
     }
+
+    [TestMethod]
+    [DataRow(0, 20)]
+    [DataRow(30, 20)]
+    public async Task PageSizeLimit(int top, int expectedCount)
+    {
+        var requestUrl = "/odata/cities?$orderby=Id";
+        if (top > 0)
+        {
+            requestUrl = $"{requestUrl}&$top={top}";
+        }
+
+        var document = await TestServer.GetAndValidateODataRequestAsync(requestUrl, "cities_structural");
+
+        var valueNode = document.RootElement.GetProperty("value");
+        Assert.AreEqual(expectedCount, valueNode.GetArrayLength());
+    }
 }
