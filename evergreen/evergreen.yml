@@ -533,7 +533,7 @@ buildvariants:
 - name: package-push-myget
   display_name: "Package Push (myget)"
   run_on: ubuntu2004-small
-  tags: ["package-push"]
+  tags: ["package-push-myget"]
   tasks:
     - name: package-push-myget
 
