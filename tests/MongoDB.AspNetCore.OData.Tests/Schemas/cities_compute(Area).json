@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "@odata.context": {
+      "type": "string"
+    },
+    "value": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "Id": {
+            "type": "integer"
+          },
+          "Name": {
+            "type": "string"
+          },
+          "Area": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "Id",
+          "Name",
+          "Area"
+        ]
+      }
+    }
+  },
+  "required": [
+    "@odata.context",
+    "value"
+  ]
+}
