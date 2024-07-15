@@ -88,30 +88,38 @@ internal class MongoExpressionRewriter : ExpressionVisitor
                                                                && b.Expression is MemberInitExpression);
 
                 var idProperty = ((UnaryExpression)((ConditionalExpression)idBinding.Expression).IfFalse).Operand;
-                MemberInfo idInfo = ((MemberExpression)idProperty).Member;
+                // MemberInfo idInfo = ((MemberExpression)idProperty).Member;
+                MemberInfo idInfo = typeof(AnonymousType).GetProperty(nameof(AnonymousType.Id));
                 var newIdBinding = Expression.Bind(idInfo, idProperty);
 
                 var nameProperty =
                     ((ConditionalExpression)
                         ((MemberAssignment)((MemberInitExpression)nameBinding.Expression).Bindings[1]).Expression)
                     .IfFalse;
-                MemberInfo nameInfo = ((MemberExpression)nameProperty).Member;
+                // MemberInfo nameInfo = ((MemberExpression)nameProperty).Member;
+                MemberInfo nameInfo = typeof(AnonymousType).GetProperty(nameof(AnonymousType.Name));
                 var newNameBinding = Expression.Bind(nameInfo, nameProperty);
 
                 var areaProperty = ((MemberAssignment)((MemberInitExpression)areaBinding.Expression).Bindings[1])
                     .Expression;
-                MemberInfo areaInfo = ((MemberAssignment)((MemberInitExpression)areaBinding.Expression).Bindings[1])
-                    .Member;
+                // MemberInfo areaInfo = ((MemberAssignment)((MemberInitExpression)areaBinding.Expression).Bindings[1])
+                //     .Member;
+                MemberInfo areaInfo = typeof(AnonymousType).GetProperty(nameof(AnonymousType.Area));
                 var newAreaBinding = Expression.Bind(areaInfo, areaProperty);
 
                 var newBindings = new[] { newIdBinding, newNameBinding, newAreaBinding };
 
-                NewExpression newExpression = Expression.New(typeof(Tuple<long, string, double>));
-                // System.ArgumentException: Type 'System.Tuple`3[System.Int64,System.String,System.Double]' does not have a default constructor (Parameter 'type')
-                return Expression.MemberInit(newExpression, newBindings); // TODO: fix this
+                return Expression.MemberInit(Expression.New(typeof(AnonymousType)), newBindings);
             }
         }
 
         return body;
+    }
+
+    private class AnonymousType
+    {
+        public long Id { get; set; }
+        public string Name { get; set; }
+        public double? Area { get; set; }
     }
 }
