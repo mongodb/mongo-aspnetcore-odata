@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -36,7 +35,7 @@ internal class MongoExpressionRewriter : ExpressionVisitor
             _ => base.VisitMethodCall(node)
         };
 
-    public Expression VisitSelect(MethodCallExpression node)
+    private static Expression VisitSelect(MethodCallExpression node)
     {
         var source = node.Arguments[0];
         var lambda = (LambdaExpression)RemoveQuotes(node.Arguments[1]);
@@ -64,10 +63,9 @@ internal class MongoExpressionRewriter : ExpressionVisitor
         return e;
     }
 
-    private Expression VisitSelectSome(LambdaExpression lambda)
+    private static Expression VisitSelectSome(LambdaExpression lambda)
     {
         var body = lambda.Body;
-        var parameter = lambda.Parameters[0];
 
         if (body is MemberInitExpression memberInit && memberInit.NewExpression.Type.Name.StartsWith("SelectSome"))
         {
