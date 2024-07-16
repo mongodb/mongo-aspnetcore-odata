@@ -45,7 +45,7 @@ internal class MongoExpressionRewriter : ExpressionVisitor
         var newLambdaBody = VisitSelectSome(lambda);
         var newLambda = Expression.Lambda(newLambdaBody, lambda.Parameters);
 
-        var selectMethod = typeof(Enumerable).GetMethods().First(m => m.Name == "Select");
+        var selectMethod = typeof(Queryable).GetMethods().First(m => m.Name == "Select");
         var sourceType = source.Type.GetGenericArguments()[0];
         var newLambdaType = newLambda.ReturnType;
 
