@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -78,34 +80,7 @@ internal class MongoExpressionRewriter : ExpressionVisitor
                 var containerInit = (MemberInitExpression)containerBinding.Expression;
                 var containerBindings = containerInit.Bindings.OfType<MemberAssignment>().ToList();
 
-                var idBinding = containerBindings.First(b => b.Member.Name == "Value"
-                                                             && b.Expression is ConditionalExpression);
-                var nameBinding = containerBindings.First(b => b.Member.Name == "Next0"
-                                                               && b.Expression is MemberInitExpression);
-                var areaBinding = containerBindings.First(b => b.Member.Name == "Next1"
-                                                               && b.Expression is MemberInitExpression);
-
-                var idProperty = ((UnaryExpression)((ConditionalExpression)idBinding.Expression).IfFalse).Operand;
-                // MemberInfo idInfo = ((MemberExpression)idProperty).Member;
-                MemberInfo idInfo = typeof(AnonymousType).GetProperty(nameof(AnonymousType.Id));
-                var newIdBinding = Expression.Bind(idInfo, idProperty);
-
-                var nameProperty =
-                    ((ConditionalExpression)
-                        ((MemberAssignment)((MemberInitExpression)nameBinding.Expression).Bindings[1]).Expression)
-                    .IfFalse;
-                // MemberInfo nameInfo = ((MemberExpression)nameProperty).Member;
-                MemberInfo nameInfo = typeof(AnonymousType).GetProperty(nameof(AnonymousType.Name));
-                var newNameBinding = Expression.Bind(nameInfo, nameProperty);
-
-                var areaProperty = ((MemberAssignment)((MemberInitExpression)areaBinding.Expression).Bindings[1])
-                    .Expression;
-                // MemberInfo areaInfo = ((MemberAssignment)((MemberInitExpression)areaBinding.Expression).Bindings[1])
-                //     .Member;
-                MemberInfo areaInfo = typeof(AnonymousType).GetProperty(nameof(AnonymousType.Area));
-                var newAreaBinding = Expression.Bind(areaInfo, areaProperty);
-
-                var newBindings = new[] { newIdBinding, newNameBinding, newAreaBinding };
+                var newBindings = GetNewBindings(containerBindings);
 
                 return Expression.MemberInit(Expression.New(typeof(AnonymousType)), newBindings);
             }
@@ -114,9 +89,60 @@ internal class MongoExpressionRewriter : ExpressionVisitor
         return body;
     }
 
+    private static MemberAssignment[] GetNewBindings(List<MemberAssignment> containerBindings)
+    {
+        int bindingCount = containerBindings.Count - 1;
+        MemberAssignment[] newBindings = new MemberAssignment[bindingCount];
+
+        for (int i = 0; i <= bindingCount; i++)
+        {
+            MemberAssignment currentBinding = containerBindings[i];
+
+            if (currentBinding.Member.Name == "Name")
+            {
+                var valueBinding = containerBindings[i + 1];
+                newBindings[i] = CreateNewBinding(currentBinding, valueBinding);
+            }
+            else if (currentBinding.Member.Name == "Value")
+            {
+            }
+            else if (currentBinding.Member.Name.StartsWith("Next"))
+            {
+                if (currentBinding.Expression is MemberInitExpression nextInit &&
+                    nextInit.Bindings[0] is MemberAssignment keyBinding &&
+                    nextInit.Bindings[1] is MemberAssignment valueBinding)
+                {
+                    newBindings[i - 1] = CreateNewBinding(keyBinding, valueBinding);
+                }
+            }
+            else
+            {
+                throw new NotSupportedException($"Unsupported binding type: {currentBinding.Member.Name}");
+            }
+        }
+
+        return newBindings;
+    }
+
+    private static MemberAssignment CreateNewBinding(MemberAssignment nameBinding, MemberAssignment valueBinding)
+    {
+        string fieldName = (string)((ConstantExpression)nameBinding.Expression).Value;
+        MemberInfo key = typeof(AnonymousType).GetProperty(fieldName);
+        Expression value;
+
+        if (valueBinding.Expression is ConditionalExpression ||
+            valueBinding.Expression is BinaryExpression) // TODO: add more types if needed
+        {
+            value = valueBinding.Expression;
+            return Expression.Bind(key, value);
+        }
+
+        throw new NotSupportedException($"Unsupported expression type: {valueBinding.Expression.Type}");
+    }
+
     private class AnonymousType
     {
-        public long Id { get; set; }
+        public long? Id { get; set; }
         public string Name { get; set; }
         public double Area { get; set; }
     }
