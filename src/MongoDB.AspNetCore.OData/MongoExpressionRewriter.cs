@@ -82,9 +82,8 @@ internal class MongoExpressionRewriter : ExpressionVisitor
                 var containerInit = (MemberInitExpression)containerBinding.Expression;
                 var containerBindings = containerInit.Bindings.OfType<MemberAssignment>().ToList();
 
-
-                Expression[] elements = new Expression[containerBindings.Count - 1];
-
+                ElementInit[] elements = new ElementInit[containerBindings.Count - 1];
+                MethodInfo addMethod = typeof(BsonDocument).GetMethod("Add", new Type[] { typeof(BsonElement) });
 
                 for (int i = 0; i < containerBindings.Count; i++)
                 {
@@ -98,8 +97,8 @@ internal class MongoExpressionRewriter : ExpressionVisitor
                         var propertyValue = valueBinding.Expression;
 
                         var element = Expression.New(typeof(BsonElement).GetConstructor(new [] { typeof(string), typeof(BsonValue) } ), propertyName, Expression.Convert(propertyValue, typeof(BsonValue)));
-
-                        elements[i] = element;
+                        var elementInit = Expression.ElementInit(addMethod, element);
+                        elements[i] = elementInit;
                     }
                     else if (currentBinding.Member.Name == "Value")
                     {
@@ -114,8 +113,8 @@ internal class MongoExpressionRewriter : ExpressionVisitor
                             var propertyValue = valueBinding.Expression;
 
                             var element = Expression.New(typeof(BsonElement).GetConstructor(new [] { typeof(string), typeof(BsonValue) } ), propertyName, Expression.Convert(propertyValue, typeof(BsonValue)));
-
-                            elements[i-1] = element;
+                            var elementInit = Expression.ElementInit(addMethod, element);
+                            elements[i-1] = elementInit;
                         }
                     }
                     else
@@ -124,10 +123,9 @@ internal class MongoExpressionRewriter : ExpressionVisitor
                     }
                 }
 
-                ConstructorInfo constructor = typeof(BsonDocument).GetConstructor(new[] { typeof(List<BsonElement>) });
-                NewArrayExpression elementsExpr = Expression.NewArrayInit(typeof(BsonElement), elements);
-                var newBsonDoc = Expression.New(constructor, elementsExpr);
-                return newBsonDoc;
+                NewExpression newExpr = Expression.New(typeof(BsonDocument));
+                ListInitExpression listInitExpression = Expression.ListInit(newExpr, elements);
+                return listInitExpression;
             }
         }
         return body;
