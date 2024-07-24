@@ -17,6 +17,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using MongoDB.Bson;
 
 namespace MongoDB.AspNetCore.OData;
 
@@ -43,7 +44,8 @@ internal class MongoExpressionRewriter : ExpressionVisitor
         var lambda = (LambdaExpression)RemoveQuotes(node.Arguments[1]);
 
         // create a new lambda body using the same arguments, omitting SelectSome so that the MongoDB driver can translate it
-        var newLambdaBody = VisitSelectSome(lambda);
+        // var newLambdaBody = VisitSelectSome(lambda);
+        var newLambdaBody = VisitSelectBson(lambda);
         var newLambda = Expression.Lambda(newLambdaBody, lambda.Parameters);
 
         var selectMethod = typeof(Queryable).GetMethods().First(m => m.Name == "Select");
@@ -145,5 +147,72 @@ internal class MongoExpressionRewriter : ExpressionVisitor
         public long? Id { get; set; }
         public string Name { get; set; }
         public double Area { get; set; }
+    }
+
+
+    private static Expression VisitSelectBson(LambdaExpression lambda)
+    {
+        var body = lambda.Body;
+
+        if (body is MemberInitExpression memberInit && memberInit.NewExpression.Type.Name.StartsWith("SelectSome"))
+        {
+            var containerBinding = memberInit.Bindings
+                .OfType<MemberAssignment>()
+                .FirstOrDefault(b => b.Member.Name == "Container");
+
+            if (containerBinding != null)
+            {
+                var containerInit = (MemberInitExpression)containerBinding.Expression;
+                var containerBindings = containerInit.Bindings.OfType<MemberAssignment>().ToList();
+
+
+                Expression[] elements = new Expression[containerBindings.Count - 1];
+
+
+                for (int i = 0; i < containerBindings.Count; i++)
+                {
+                    MemberAssignment currentBinding = containerBindings[i];
+
+                    if (currentBinding.Member.Name == "Name")
+                    {
+                        var valueBinding = containerBindings[i + 1];
+
+                        var propertyName = currentBinding.Expression as ConstantExpression;
+                        var propertyValue = valueBinding.Expression;
+
+                        var element = Expression.New(typeof(BsonElement).GetConstructor(new [] { typeof(string), typeof(BsonValue) } ), propertyName, Expression.Convert(propertyValue, typeof(BsonValue)));
+
+                        elements[i] = element;
+                    }
+                    else if (currentBinding.Member.Name == "Value")
+                    {
+                    }
+                    else if (currentBinding.Member.Name.StartsWith("Next"))
+                    {
+                        if (currentBinding.Expression is MemberInitExpression nextInit &&
+                            nextInit.Bindings[0] is MemberAssignment keyBinding &&
+                            nextInit.Bindings[1] is MemberAssignment valueBinding)
+                        {
+                            var propertyName = keyBinding.Expression as ConstantExpression;
+                            var propertyValue = valueBinding.Expression;
+
+                            var element = Expression.New(typeof(BsonElement).GetConstructor(new [] { typeof(string), typeof(BsonValue) } ), propertyName, Expression.Convert(propertyValue, typeof(BsonValue)));
+
+                            elements[i-1] = element;
+                        }
+                    }
+                    else
+                    {
+                        throw new NotSupportedException($"Unsupported binding type: {currentBinding.Member.Name}");
+                    }
+                }
+
+                ConstructorInfo constructor = typeof(BsonDocument).GetConstructor(new[] { typeof(List<BsonElement>) });
+                NewArrayExpression elementsExpr = Expression.NewArrayInit(typeof(BsonElement), elements);
+                var newBsonDoc = Expression.New(constructor, elementsExpr);
+                return newBsonDoc;
+            }
+        }
+        return body;
     }
 }
