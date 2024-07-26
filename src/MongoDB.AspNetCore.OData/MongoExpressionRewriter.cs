@@ -83,7 +83,7 @@ internal class MongoExpressionRewriter : ExpressionVisitor
                 var containerBindings = containerInit.Bindings.OfType<MemberAssignment>().ToList();
 
                 ElementInit[] elements = new ElementInit[containerBindings.Count - 1];
-                MethodInfo addMethod = typeof(BsonDocument).GetMethod("Add", new Type[] { typeof(BsonElement) });
+                MethodInfo addMethod = typeof(BsonDocument).GetMethod("Add", new [] { typeof(string), typeof(BsonValue) }); // TODO: change to 2 args
 
                 for (int i = 0; i < containerBindings.Count; i++)
                 {
@@ -94,10 +94,9 @@ internal class MongoExpressionRewriter : ExpressionVisitor
                         var valueBinding = containerBindings[i + 1];
 
                         var propertyName = currentBinding.Expression as ConstantExpression;
-                        var propertyValue = valueBinding.Expression;
+                        var propertyValue = Expression.Convert(valueBinding.Expression, typeof(BsonValue));
 
-                        var element = Expression.New(typeof(BsonElement).GetConstructor(new [] { typeof(string), typeof(BsonValue) } ), propertyName, Expression.Convert(propertyValue, typeof(BsonValue)));
-                        var elementInit = Expression.ElementInit(addMethod, element);
+                        var elementInit = Expression.ElementInit(addMethod, new Expression[] { propertyName, propertyValue });
                         elements[i] = elementInit;
                     }
                     else if (currentBinding.Member.Name == "Value")
@@ -110,10 +109,9 @@ internal class MongoExpressionRewriter : ExpressionVisitor
                             nextInit.Bindings[1] is MemberAssignment valueBinding)
                         {
                             var propertyName = keyBinding.Expression as ConstantExpression;
-                            var propertyValue = valueBinding.Expression;
+                            var propertyValue = Expression.Convert(valueBinding.Expression, typeof(BsonValue));
 
-                            var element = Expression.New(typeof(BsonElement).GetConstructor(new [] { typeof(string), typeof(BsonValue) } ), propertyName, Expression.Convert(propertyValue, typeof(BsonValue)));
-                            var elementInit = Expression.ElementInit(addMethod, element);
+                            var elementInit = Expression.ElementInit(addMethod, new Expression[] { propertyName, propertyValue });
                             elements[i-1] = elementInit;
                         }
                     }
