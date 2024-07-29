@@ -15,41 +15,17 @@
           "Id": {
             "type": "integer"
           },
-          "CountryId": {
-            "type": "string"
-          },
           "Name": {
             "type": "string"
           },
-          "Population": {
-            "type": "integer"
-          },
-          "Density": {
+          "Area": {
             "type": "number"
-          },
-          "Tags": {
-            "type": "array"
-          },
-          "AverageTemperatureMin": {
-            "type": "number"
-          },
-          "AverageTemperatureMax": {
-            "type": "number"
-          },
-          "Date": {
-            "type": "string"
           }
         },
         "required": [
           "Id",
-          "CountryId",
           "Name",
-          "Population",
-          "Density",
-          "Tags",
-          "AverageTemperatureMin",
-          "AverageTemperatureMax",
-          "Date"
+          "Area"
         ]
       }
     }

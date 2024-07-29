@@ -21,7 +21,18 @@ namespace MongoDB.AspNetCore.OData.Tests;
 public class EntitySetComputeTests
 {
     [TestMethod]
-    [DataRow("/odata/Cities?$compute=Population div Density as Area&$select=Id,Name,Area","cities_compute(Area)", DisplayName = "compute_area_select")]
+    [DataRow("/odata/Cities?$compute=Population div Density as Area&$select=Id,Area",
+        "cities_compute(Area)select(Id,Area)", DisplayName = "compute_area_select2")]
+    [DataRow("/odata/Cities?$compute=Population div Density as Area&$select=Id,Name,Area",
+        "cities_compute(Area)select(Id,Name,Area)", DisplayName = "compute_area_select3")]
+    [DataRow("/odata/Cities?$compute=Population div Density as Area,Population mul Density as PopulationDensity&$select=Id,Name,Area,PopulationDensity",
+        "cities_compute(Area,PopulationDensity)select(Id,Name,Area,PopulationDensity)", DisplayName = "compute_twice_select4")]
+    [DataRow("/odata/Cities?$compute=Population div Density as Area&$compute=Area mul Density as Population2&$select=Id,Area,Population,Population2",
+        "cities_compute(Area,Population2)select(Id,Area,Population,Population2)", DisplayName = "compute_nested_select4")]
+    [DataRow("/odata/Cities?$compute=Population div Density as Area",
+        "cities_compute(Area)", DisplayName = "compute_area_select*")]
+    [DataRow("/odata/Cities?$compute=Population div Density as Area&$select=Id",
+        "cities_compute(Area)select(Id)", DisplayName = "compute_area_select1")]
     public Task ComputeAsync(string requestUrl, string schemaName)
         => TestServer.GetAndValidateODataRequestAsync(requestUrl, schemaName);
 
