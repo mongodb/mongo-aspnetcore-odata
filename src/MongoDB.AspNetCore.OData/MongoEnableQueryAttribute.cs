@@ -65,6 +65,8 @@ public sealed class MongoEnableQueryAttribute : EnableQueryAttribute
         var querySettings = ToQuerySettings(queryOptions.Request.GetTimeZoneInfo(), ignoreQueryOptions);
         queryable = queryOptions.ApplyTo(queryable, querySettings);
 
+        var originalQueryable = queryable; // Save the original queryable before it's rewritten
+
         queryable = RewriteExpression(queryable);
 
         if (queryOptions.Request.IsCountRequest())
@@ -81,7 +83,7 @@ public sealed class MongoEnableQueryAttribute : EnableQueryAttribute
 
         if (queryOptions.SelectExpand != null)
         {
-            queryable = ApplyTransformationMethod(__applySelectExpandMethodInfo, queryable, queryOptions);
+            queryable = FormatQuery(originalQueryable, queryable);
         }
 
         return queryable;
@@ -92,6 +94,13 @@ public sealed class MongoEnableQueryAttribute : EnableQueryAttribute
         // Use MongoExpressionRewriter to rewrite non-translatable methods if needed.
         var newExpr = __updater.Visit(queryable.Expression);
         return queryable.Provider.CreateQuery(newExpr);
+    }
+
+    private IQueryable FormatQuery(IQueryable originalQueryable, IQueryable queryable)
+    {
+        var formatter = new MongoQueryFormatter(queryable);
+        var newExpr = formatter.Visit(originalQueryable.Expression);
+        return originalQueryable.Provider.CreateQuery(newExpr);
     }
 
     public override void OnActionExecuted(ActionExecutedContext actionExecutedContext)
