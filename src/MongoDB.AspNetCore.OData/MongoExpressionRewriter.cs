@@ -13,7 +13,6 @@
 // limitations under the License.
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -44,7 +43,6 @@ internal class MongoExpressionRewriter : ExpressionVisitor
         var lambda = (LambdaExpression)RemoveQuotes(node.Arguments[1]);
 
         // create a new lambda body using the same arguments, omitting SelectSome so that the MongoDB driver can translate it
-        // var newLambdaBody = VisitSelectSome(lambda);
         var newLambdaBody = VisitSelectBson(lambda);
         var newLambda = Expression.Lambda(newLambdaBody, lambda.Parameters);
 
@@ -57,7 +55,7 @@ internal class MongoExpressionRewriter : ExpressionVisitor
         return result;
     }
 
-    private static Expression RemoveQuotes(Expression e)
+    public static Expression RemoveQuotes(Expression e)
     {
         while (e.NodeType == ExpressionType.Quote)
         {
@@ -73,59 +71,60 @@ internal class MongoExpressionRewriter : ExpressionVisitor
 
         if (body is MemberInitExpression memberInit && memberInit.NewExpression.Type.Name.StartsWith("SelectSome"))
         {
-            var containerBinding = memberInit.Bindings
-                .OfType<MemberAssignment>()
-                .FirstOrDefault(b => b.Member.Name == "Container");
+            var containerBinding = memberInit.Bindings[1] as MemberAssignment;
 
-            if (containerBinding != null)
+            var containerInit = (MemberInitExpression)containerBinding.Expression;
+            var containerBindings = containerInit.Bindings.OfType<MemberAssignment>().ToList();
+
+            ElementInit[] elements = new ElementInit[containerBindings.Count - 1];
+            MethodInfo addMethod =
+                typeof(BsonDocument).GetMethod("Add",
+                    new[] { typeof(string), typeof(BsonValue) }); // TODO: change to 2 args
+
+            for (int i = 0; i < containerBindings.Count; i++)
             {
-                var containerInit = (MemberInitExpression)containerBinding.Expression;
-                var containerBindings = containerInit.Bindings.OfType<MemberAssignment>().ToList();
+                MemberAssignment currentBinding = containerBindings[i];
 
-                ElementInit[] elements = new ElementInit[containerBindings.Count - 1];
-                MethodInfo addMethod = typeof(BsonDocument).GetMethod("Add", new [] { typeof(string), typeof(BsonValue) }); // TODO: change to 2 args
-
-                for (int i = 0; i < containerBindings.Count; i++)
+                if (currentBinding.Member.Name == "Name")
                 {
-                    MemberAssignment currentBinding = containerBindings[i];
+                    var valueBinding = containerBindings[i + 1];
 
-                    if (currentBinding.Member.Name == "Name")
+                    var propertyName = currentBinding.Expression as ConstantExpression;
+                    var propertyValue = Expression.Convert(valueBinding.Expression, typeof(BsonValue));
+
+                    var elementInit =
+                        Expression.ElementInit(addMethod, new Expression[] { propertyName, propertyValue });
+                    elements[i] = elementInit;
+                }
+                else if (currentBinding.Member.Name == "Value")
+                {
+                    // Skip, already handled above
+                }
+                else if (currentBinding.Member.Name.StartsWith("Next"))
+                {
+                    if (currentBinding.Expression is MemberInitExpression nextInit &&
+                        nextInit.Bindings[0] is MemberAssignment keyBinding &&
+                        nextInit.Bindings[1] is MemberAssignment valueBinding)
                     {
-                        var valueBinding = containerBindings[i + 1];
-
-                        var propertyName = currentBinding.Expression as ConstantExpression;
+                        var propertyName = keyBinding.Expression as ConstantExpression;
                         var propertyValue = Expression.Convert(valueBinding.Expression, typeof(BsonValue));
 
-                        var elementInit = Expression.ElementInit(addMethod, new Expression[] { propertyName, propertyValue });
-                        elements[i] = elementInit;
-                    }
-                    else if (currentBinding.Member.Name == "Value")
-                    {
-                    }
-                    else if (currentBinding.Member.Name.StartsWith("Next"))
-                    {
-                        if (currentBinding.Expression is MemberInitExpression nextInit &&
-                            nextInit.Bindings[0] is MemberAssignment keyBinding &&
-                            nextInit.Bindings[1] is MemberAssignment valueBinding)
-                        {
-                            var propertyName = keyBinding.Expression as ConstantExpression;
-                            var propertyValue = Expression.Convert(valueBinding.Expression, typeof(BsonValue));
-
-                            var elementInit = Expression.ElementInit(addMethod, new Expression[] { propertyName, propertyValue });
-                            elements[i-1] = elementInit;
-                        }
-                    }
-                    else
-                    {
-                        throw new NotSupportedException($"Unsupported binding type: {currentBinding.Member.Name}");
+                        var elementInit =
+                            Expression.ElementInit(addMethod, new Expression[] { propertyName, propertyValue });
+                        elements[i - 1] = elementInit;
                     }
                 }
-
-                NewExpression newExpr = Expression.New(typeof(BsonDocument));
-                ListInitExpression listInitExpression = Expression.ListInit(newExpr, elements);
-                return listInitExpression;
+                else
+                {
+                    throw new NotSupportedException($"Unsupported binding type: {currentBinding.Member.Name}");
+                }
             }
+
+            NewExpression newExpr = Expression.New(typeof(BsonDocument));
+            ListInitExpression listInitExpression = Expression.ListInit(newExpr, elements);
+            return listInitExpression;
         }
+
         return body;
     }
 }
