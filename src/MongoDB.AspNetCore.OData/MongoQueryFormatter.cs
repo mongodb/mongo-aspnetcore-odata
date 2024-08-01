@@ -44,7 +44,7 @@ public class MongoQueryFormatter : ExpressionVisitor
         if (node.Method.Name == "Select")
         {
             var source = __bsonDocs;
-            var lambda = (LambdaExpression)MongoExpressionRewriter.RemoveQuotes(node.Arguments[1]);
+            var lambda = (LambdaExpression)MongoRewriteUtils.RemoveQuotes(node.Arguments[1]);
 
             var input = Expression.Parameter(typeof(BsonDocument), "$it");
             var parameters = new ReadOnlyCollection<ParameterExpression>(new List<ParameterExpression>() { input });

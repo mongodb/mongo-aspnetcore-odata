@@ -40,7 +40,7 @@ internal class MongoExpressionRewriter : ExpressionVisitor
     private static Expression VisitSelect(MethodCallExpression node)
     {
         var source = node.Arguments[0];
-        var lambda = (LambdaExpression)RemoveQuotes(node.Arguments[1]);
+        var lambda = (LambdaExpression)MongoRewriteUtils.RemoveQuotes(node.Arguments[1]);
 
         // create a new lambda body using the same arguments, omitting SelectSome so that the MongoDB driver can translate it
         var newLambdaBody = VisitSelectBson(lambda);
@@ -53,16 +53,6 @@ internal class MongoExpressionRewriter : ExpressionVisitor
         var result = Expression.Call(selectMethod.MakeGenericMethod(sourceType, newLambdaType), source, newLambda);
 
         return result;
-    }
-
-    public static Expression RemoveQuotes(Expression e)
-    {
-        while (e.NodeType == ExpressionType.Quote)
-        {
-            e = ((UnaryExpression)e).Operand;
-        }
-
-        return e;
     }
 
     private static Expression VisitSelectBson(LambdaExpression lambda)
