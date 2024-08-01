@@ -30,7 +30,6 @@ public class MongoQueryFormatter : ExpressionVisitor
 
     private bool _insideContainer;
     private string _fieldName = string.Empty;
-    private bool _nameSet;
 
     private static ParameterExpression __it;
 
@@ -72,17 +71,16 @@ public class MongoQueryFormatter : ExpressionVisitor
                 break;
             case "Name":
                 _fieldName = ((ConstantExpression)node.Expression).Value as string;
-                _nameSet = true;
                 break;
             case "Value":
-                if (_insideContainer && _nameSet)
+                if (_insideContainer)
                 {
                     MethodCallExpression value =
                         Expression.Call(__it, __bsonGetValueMethodInfo, Expression.Constant(_fieldName));
                     Type toType = node.Expression.Type;
                     Expression valueConverted = Expression.Convert(value, toType);
 
-                    _nameSet = false;
+                    _fieldName = null;
                     return Expression.Bind(node.Member, valueConverted);
                 }
 
