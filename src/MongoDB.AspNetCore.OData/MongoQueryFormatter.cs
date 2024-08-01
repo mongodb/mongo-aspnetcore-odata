@@ -13,49 +13,82 @@
 // limitations under the License.
 
 using System;
-using System.Collections;
-using System.Diagnostics;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using MongoDB.Bson;
 
 namespace MongoDB.AspNetCore.OData;
 
 public class MongoQueryFormatter : ExpressionVisitor
 {
-    private static IQueryable queryable;
+    private static readonly MethodInfo __bsonGetValueMethodInfo =
+        typeof(BsonDocument).GetMethod("GetValue", new[] { typeof(string) });
+    private static Expression __bsonDocs;
+
+    private bool _insideContainer;
+    private string _fieldName = string.Empty;
+    private bool _nameSet;
+
+    private static ParameterExpression __it;
 
     public MongoQueryFormatter(IQueryable queryable)
     {
-        MongoQueryFormatter.queryable = queryable;
+        __bsonDocs = queryable.Expression;
     }
 
-    protected override Expression VisitMemberInit(MemberInitExpression node)
+    protected override Expression VisitMethodCall(MethodCallExpression node)
     {
-        if (node.NewExpression.Type.Name == "SelectSome`1" &&
-            node.Bindings[1] is MemberAssignment containerBinding &&
-            containerBinding.Expression is MemberInitExpression memberInitExpression &&
-            memberInitExpression.Type.Name == "NamedPropertyWithNext1`1" &&
-            memberInitExpression.Bindings is IEnumerable bindings)
+        if (node.Method.Name == "Select")
         {
+            var source = __bsonDocs;
+            var lambda = (LambdaExpression)MongoExpressionRewriter.RemoveQuotes(node.Arguments[1]);
 
-            string nameBsonField;
+            var input = Expression.Parameter(typeof(BsonDocument), "$it");
+            var parameters = new ReadOnlyCollection<ParameterExpression>(new List<ParameterExpression>() { input });
+            __it = input;
 
-            foreach (MemberAssignment binding in bindings)
-            {
-                if (binding.Member.Name == "Name")
-                {
-                    nameBsonField = ((ConstantExpression)binding.Expression).Value as string;
-                }
-                else if (binding.Member.Name == "Value")
-                {
-                }
-                else if (binding.Member.Name.StartsWith("Next"))
-                {
-                }
-            }
+            var newLambda = Expression.Lambda(lambda.Body, parameters);
+            newLambda = Visit(newLambda) as LambdaExpression;
+
+            var selectMethod = typeof(Queryable).GetMethods().First(m => m.Name == "Select");
+            var sourceType = source.Type.GetGenericArguments()[0];
+            var newLambdaType = newLambda.ReturnType;
+
+            return Expression.Call(selectMethod.MakeGenericMethod(sourceType, newLambdaType), source, newLambda);
         }
 
-        return base.VisitMemberInit(node);
+        return base.VisitMethodCall(node);
+    }
+
+    protected override MemberAssignment VisitMemberAssignment(MemberAssignment node)
+    {
+        switch (node.Member.Name)
+        {
+            case "Container":
+                _insideContainer = true;
+                break;
+            case "Name":
+                _fieldName = ((ConstantExpression)node.Expression).Value as string;
+                _nameSet = true;
+                break;
+            case "Value":
+                if (_insideContainer && _nameSet)
+                {
+                    MethodCallExpression value =
+                        Expression.Call(__it, __bsonGetValueMethodInfo, Expression.Constant(_fieldName));
+                    Type toType = node.Expression.Type;
+                    Expression valueConverted = Expression.Convert(value, toType);
+
+                    _nameSet = false;
+                    return Expression.Bind(node.Member, valueConverted);
+                }
+
+                break;
+        }
+
+        return base.VisitMemberAssignment(node);
     }
 }

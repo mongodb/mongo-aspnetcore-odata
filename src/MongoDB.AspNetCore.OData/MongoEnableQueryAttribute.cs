@@ -39,6 +39,10 @@ public sealed class MongoEnableQueryAttribute : EnableQueryAttribute
     private static readonly MethodInfo __applySelectExpandMethodInfo = typeof(MongoEnableQueryAttribute).GetMethod(
         nameof(ApplySelectExpand),
         BindingFlags.Static | BindingFlags.NonPublic);
+
+    private static readonly MethodInfo __formatQueryMethodInfo = typeof(MongoEnableQueryAttribute).GetMethod(
+        nameof(FormatQuery),
+        BindingFlags.Static | BindingFlags.NonPublic);
     private static readonly MongoExpressionRewriter __updater = new MongoExpressionRewriter();
 
     public MongoEnableQueryAttribute()
@@ -83,7 +87,7 @@ public sealed class MongoEnableQueryAttribute : EnableQueryAttribute
 
         if (queryOptions.SelectExpand != null)
         {
-            queryable = FormatQuery(originalQueryable, queryable);
+            queryable = ApplyTransformationMethod(__formatQueryMethodInfo, queryable, originalQueryable);
         }
 
         return queryable;
@@ -96,11 +100,12 @@ public sealed class MongoEnableQueryAttribute : EnableQueryAttribute
         return queryable.Provider.CreateQuery(newExpr);
     }
 
-    private IQueryable FormatQuery(IQueryable originalQueryable, IQueryable queryable)
+    private static IQueryable FormatQuery<T>(IQueryable<T> queryable, IQueryable originalQueryable)
     {
+        var wrappedQueryable = queryable.ToArray().AsQueryable();
         var formatter = new MongoQueryFormatter(queryable);
         var newExpr = formatter.Visit(originalQueryable.Expression);
-        return originalQueryable.Provider.CreateQuery(newExpr);
+        return wrappedQueryable.Provider.CreateQuery(newExpr);
     }
 
     public override void OnActionExecuted(ActionExecutedContext actionExecutedContext)
