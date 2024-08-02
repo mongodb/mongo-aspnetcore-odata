@@ -26,6 +26,9 @@ internal class MongoExpressionRewriter : ExpressionVisitor
     private readonly MethodInfo _substringWithLength =
         typeof(string).GetMethod("Substring", new[] { typeof(int), typeof(int) });
 
+    private static readonly MethodInfo __add = typeof(BsonDocument).GetMethod("Add",
+        new[] { typeof(string), typeof(BsonValue) });
+
     protected override Expression VisitMethodCall(MethodCallExpression node) =>
         node.Method.Name switch
         {
@@ -46,7 +49,6 @@ internal class MongoExpressionRewriter : ExpressionVisitor
         var newLambdaBody = VisitSelectBson(lambda);
         var newLambda = Expression.Lambda(newLambdaBody, lambda.Parameters);
 
-        var selectMethod = typeof(Queryable).GetMethods().First(m => m.Name == "Select");
         var sourceType = source.Type.GetGenericArguments()[0];
         var newLambdaType = newLambda.ReturnType;
 
@@ -66,9 +68,6 @@ internal class MongoExpressionRewriter : ExpressionVisitor
             var containerBindings = containerInit.Bindings.OfType<MemberAssignment>().ToList();
 
             ElementInit[] elements = new ElementInit[containerBindings.Count - 1];
-            MethodInfo addMethod =
-                typeof(BsonDocument).GetMethod("Add",
-                    new[] { typeof(string), typeof(BsonValue) }); // TODO: change to 2 args
 
             for (int i = 0; i < containerBindings.Count; i++)
             {
@@ -77,13 +76,7 @@ internal class MongoExpressionRewriter : ExpressionVisitor
                 if (currentBinding.Member.Name == "Name")
                 {
                     var valueBinding = containerBindings[i + 1];
-
-                    var propertyName = currentBinding.Expression as ConstantExpression;
-                    var propertyValue = Expression.Convert(valueBinding.Expression, typeof(BsonValue));
-
-                    var elementInit =
-                        Expression.ElementInit(addMethod, new Expression[] { propertyName, propertyValue });
-                    elements[i] = elementInit;
+                    elements[i] = CreateKeyValuePair(currentBinding, valueBinding);
                 }
                 else if (currentBinding.Member.Name == "Value")
                 {
@@ -95,12 +88,7 @@ internal class MongoExpressionRewriter : ExpressionVisitor
                         nextInit.Bindings[0] is MemberAssignment keyBinding &&
                         nextInit.Bindings[1] is MemberAssignment valueBinding)
                     {
-                        var propertyName = keyBinding.Expression as ConstantExpression;
-                        var propertyValue = Expression.Convert(valueBinding.Expression, typeof(BsonValue));
-
-                        var elementInit =
-                            Expression.ElementInit(addMethod, new Expression[] { propertyName, propertyValue });
-                        elements[i - 1] = elementInit;
+                        elements[i - 1] = CreateKeyValuePair(keyBinding, valueBinding);
                     }
                 }
                 else
@@ -115,5 +103,26 @@ internal class MongoExpressionRewriter : ExpressionVisitor
         }
 
         return body;
+    }
+
+    private static ElementInit CreateKeyValuePair(MemberAssignment keyBinding, MemberAssignment valueBinding)
+    {
+        var name = keyBinding.Expression as ConstantExpression;
+        var value = valueBinding.Expression;
+
+        // If there's a check for $$root == null, remove it since we know BsonDocument won't be null
+        if (value is ConditionalExpression valueConditional &&
+            valueConditional.Test is BinaryExpression binaryTest &&
+            binaryTest.Left is ParameterExpression { Name: "$it" } &&
+            binaryTest.Right == Expression.Constant(null) &&
+            binaryTest.NodeType is ExpressionType.Equal)
+        {
+            // Simplifies the Expression tree and therefore the MQL, preserving meaning
+            value = valueConditional.IfFalse;
+        }
+
+        value = Expression.Convert(value, typeof(BsonValue));
+
+        return Expression.ElementInit(__add, name, value);
     }
 }
