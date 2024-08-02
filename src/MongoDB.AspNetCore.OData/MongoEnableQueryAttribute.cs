@@ -75,7 +75,6 @@ public sealed class MongoEnableQueryAttribute : EnableQueryAttribute
             return queryable;
         }
 
-        queryable = ApplyTransformationMethod(__applyProjectionMethodInfo, queryable, queryOptions);
         if (PageSize > 0)
         {
             queryable = ApplyTransformationMethod(__applyPagingMethodInfo, queryable, PageSize);
