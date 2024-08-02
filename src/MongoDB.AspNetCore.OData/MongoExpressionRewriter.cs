@@ -50,9 +50,8 @@ internal class MongoExpressionRewriter : ExpressionVisitor
         var sourceType = source.Type.GetGenericArguments()[0];
         var newLambdaType = newLambda.ReturnType;
 
-        var result = Expression.Call(selectMethod.MakeGenericMethod(sourceType, newLambdaType), source, newLambda);
-
-        return result;
+        return Expression.Call(MongoRewriteUtils.SelectMethodInfo.MakeGenericMethod(sourceType, newLambdaType), source,
+            newLambda);
     }
 
     private static Expression VisitSelectBson(LambdaExpression lambda)

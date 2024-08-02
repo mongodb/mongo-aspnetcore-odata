@@ -12,12 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 
 namespace MongoDB.AspNetCore.OData;
 
 public static class MongoRewriteUtils
 {
+    public static readonly MethodInfo SelectMethodInfo = typeof(Queryable)
+        .GetMethods().First(method => method.Name == "Select" && method.GetParameters().Length == 2);
+
     public static Expression RemoveQuotes(Expression e)
     {
         while (e.NodeType == ExpressionType.Quote)

@@ -27,11 +27,10 @@ public class MongoQueryFormatter : ExpressionVisitor
     private static readonly MethodInfo __bsonGetValueMethodInfo =
         typeof(BsonDocument).GetMethod("GetValue", new[] { typeof(string) });
     private static Expression __bsonDocs;
+    private static ParameterExpression __it = Expression.Parameter(typeof(BsonDocument), "$it");
 
     private bool _insideContainer;
     private string _fieldName = string.Empty;
-
-    private static ParameterExpression __it;
 
     public MongoQueryFormatter(IQueryable queryable)
     {
@@ -42,21 +41,29 @@ public class MongoQueryFormatter : ExpressionVisitor
     {
         if (node.Method.Name == "Select")
         {
+            return VisitSelect(node);
+        }
+
+        return base.VisitMethodCall(node);
+    }
+
+    private Expression VisitSelect(MethodCallExpression node)
+    {
+        if (MongoRewriteUtils.RemoveQuotes(node.Arguments[1]) is LambdaExpression lambda &&
+            lambda.Body is MemberInitExpression lambdaBody &&
+            lambdaBody.NewExpression.Type.Name.StartsWith("SelectSome"))
+        {
             var source = __bsonDocs;
-            var lambda = (LambdaExpression)MongoRewriteUtils.RemoveQuotes(node.Arguments[1]);
+            var parameters = new ReadOnlyCollection<ParameterExpression>(new List<ParameterExpression> { __it });
 
-            var input = Expression.Parameter(typeof(BsonDocument), "$it");
-            var parameters = new ReadOnlyCollection<ParameterExpression>(new List<ParameterExpression>() { input });
-            __it = input;
-
-            var newLambda = Expression.Lambda(lambda.Body, parameters);
+            var newLambda = Expression.Lambda(lambdaBody, parameters);
             newLambda = Visit(newLambda) as LambdaExpression;
 
-            var selectMethod = typeof(Queryable).GetMethods().First(m => m.Name == "Select");
             var sourceType = source.Type.GetGenericArguments()[0];
             var newLambdaType = newLambda.ReturnType;
 
-            return Expression.Call(selectMethod.MakeGenericMethod(sourceType, newLambdaType), source, newLambda);
+            return Expression.Call(
+                MongoRewriteUtils.SelectMethodInfo.MakeGenericMethod(sourceType, newLambdaType), source, newLambda);
         }
 
         return base.VisitMethodCall(node);
