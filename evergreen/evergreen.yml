@@ -506,7 +506,7 @@ buildvariants:
     - name: test-net50
 
 - matrix_name: "tests-7.0+"
-  matrix_spec: { version: ["7.0", "8.0" "latest", "rapid"], os: ["windows-64", "ubuntu-2004"], driver: "*" }
+  matrix_spec: { version: ["7.0", "8.0", "latest", "rapid"], os: ["windows-64", "ubuntu-2004"], driver: "*" }
   display_name: "${driver} Driver on ${os} with ${version} Server"
   tags: ["tests-variant"]
   tasks:
