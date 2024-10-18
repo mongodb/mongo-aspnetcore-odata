@@ -441,6 +441,10 @@ axes:
         display_name: "rapid"
         variables:
           VERSION: "rapid"
+      - id: "8.0"
+        display_name: "8.0"
+        variables:
+          VERSION: "8.0"
       - id: "7.0"
         display_name: "7.0"
         variables:
@@ -488,10 +492,10 @@ axes:
         display_name: "latest"
         variables:
           DRIVER_VERSION: "latest"
-      - id: "2.27"
-        display_name: "2.27"
+      - id: "3.0.0"
+        display_name: "3.0.0"
         variables:
-          DRIVER_VERSION: "2.27"
+          DRIVER_VERSION: "3.0.0"
 
 buildvariants:
 - matrix_name: "tests"
@@ -502,7 +506,7 @@ buildvariants:
     - name: test-net50
 
 - matrix_name: "tests-7.0+"
-  matrix_spec: { version: ["7.0", "latest", "rapid"], os: ["windows-64", "ubuntu-2004"], driver: "*" }
+  matrix_spec: { version: ["7.0", "8.0", "latest", "rapid"], os: ["windows-64", "ubuntu-2004"], driver: "*" }
   display_name: "${driver} Driver on ${os} with ${version} Server"
   tags: ["tests-variant"]
   tasks:

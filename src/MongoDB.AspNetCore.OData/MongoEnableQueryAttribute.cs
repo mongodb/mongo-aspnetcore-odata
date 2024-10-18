@@ -56,7 +56,7 @@ public sealed class MongoEnableQueryAttribute : EnableQueryAttribute
 
     public override IQueryable ApplyQuery(IQueryable queryable, ODataQueryOptions queryOptions)
     {
-        if (queryable is not IMongoQueryable)
+        if (!IsMongoQueryable(queryable))
         {
             return base.ApplyQuery(queryable, queryOptions);
         }
@@ -96,14 +96,14 @@ public sealed class MongoEnableQueryAttribute : EnableQueryAttribute
 
     public override void OnActionExecuted(ActionExecutedContext actionExecutedContext)
     {
-        var originalMongoQueryable = (actionExecutedContext.Result as ObjectResult)?.Value as IMongoQueryable;
+        var originalQueryable = (actionExecutedContext.Result as ObjectResult)?.Value as IQueryable;
         base.OnActionExecuted(actionExecutedContext);
 
         var response = actionExecutedContext.HttpContext.Response;
         // Check whether the response is set and successful
         if (response?.IsSuccessStatusCode() == true && actionExecutedContext.Result is ObjectResult responseContent)
         {
-            if (responseContent.Value is not IMongoQueryable mongoQueryable || originalMongoQueryable != mongoQueryable)
+            if (responseContent.Value is not IQueryable queryable || originalQueryable != queryable)
             {
                 return;
             }
@@ -111,7 +111,7 @@ public sealed class MongoEnableQueryAttribute : EnableQueryAttribute
             // If response was not transformed by the base EnableQuery attribute,
             // we still want force apply projection to limit MQL request to structural properties only
             var queryOptions = (ODataQueryOptions)response.HttpContext.Items[nameof(ODataQueryOptions)];
-            ApplyTransformationMethod(__applyProjectionMethodInfo, mongoQueryable, queryOptions);
+            ApplyTransformationMethod(__applyProjectionMethodInfo, queryable, queryOptions);
         }
     }
 
@@ -123,7 +123,7 @@ public sealed class MongoEnableQueryAttribute : EnableQueryAttribute
         request.HttpContext.Items[nameof(ODataQueryOptions)] = queryOptions;
     }
 
-    private static IQueryable ApplyProjection<T>(IMongoQueryable<T> queryable, ODataQueryOptions queryOptions)
+    private static IQueryable ApplyProjection<T>(IQueryable<T> queryable, ODataQueryOptions queryOptions)
     {
         var fieldProjects = new List<ProjectionDefinition<T>>();
         var entityType = queryOptions.Context.NavigationSource.EntityType();
@@ -163,15 +163,17 @@ public sealed class MongoEnableQueryAttribute : EnableQueryAttribute
 
     private static IQueryable ApplyTransformationMethod(MethodInfo method, params object[] parameters)
     {
-        var queryable = parameters[0];
-        if (!(queryable is IQueryable mongoQueryable))
+        if (!(parameters[0] is IQueryable queryable))
         {
             throw new ArgumentException("IQueryable is expected.", nameof(queryable));
         }
 
-        var genericMethod = method.MakeGenericMethod(mongoQueryable.ElementType);
+        var genericMethod = method.MakeGenericMethod(queryable.ElementType);
         return (IQueryable)genericMethod.Invoke(null, parameters);
     }
+
+    private static bool IsMongoQueryable(IQueryable queryable)
+        => queryable?.Provider is IMongoQueryProvider;
 
     private ODataQuerySettings ToQuerySettings(TimeZoneInfo timeZoneInfo, AllowedQueryOptions ignoredQueryOptions)
         => new ODataQuerySettings
