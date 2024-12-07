@@ -11,8 +11,6 @@
     <Product>MongoDB.AspNetCore.OData</Product>
     <PackageId>MongoDB.AspNetCore.OData</PackageId>
     <Description>Official MongoDB integration library for ASP.NET Core OData.</Description>
-    <PackageTags>mongodb;mongo;nosql;odata</PackageTags>
-    <PackageLanguage>en-US</PackageLanguage>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
   </PropertyGroup>
 
