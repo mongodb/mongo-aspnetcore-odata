@@ -19,6 +19,7 @@ using System.Reflection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.OData.Abstracts;
 using Microsoft.AspNetCore.OData.Extensions;
 using Microsoft.AspNetCore.OData.Query;
 using Microsoft.AspNetCore.OData.Query.Container;
@@ -39,6 +40,9 @@ public sealed class MongoEnableQueryAttribute : EnableQueryAttribute
     private static readonly MethodInfo __applySelectExpandMethodInfo = typeof(MongoEnableQueryAttribute).GetMethod(
         nameof(ApplySelectExpand),
         BindingFlags.Static | BindingFlags.NonPublic);
+    private static readonly PropertyInfo __odataFeaturePageSize = typeof(ODataFeature).GetProperty(
+        "PageSize",
+        BindingFlags.Instance | BindingFlags.NonPublic);
     private static readonly MongoExpressionRewriter __updater = new MongoExpressionRewriter();
 
     public MongoEnableQueryAttribute()
@@ -76,7 +80,7 @@ public sealed class MongoEnableQueryAttribute : EnableQueryAttribute
         queryable = ApplyTransformationMethod(__applyProjectionMethodInfo, queryable, queryOptions);
         if (PageSize > 0)
         {
-            queryable = ApplyTransformationMethod(__applyPagingMethodInfo, queryable, PageSize);
+            queryable = ApplyTransformationMethod(__applyPagingMethodInfo, queryable, PageSize, queryOptions);
         }
 
         if (queryOptions.SelectExpand != null)
@@ -147,8 +151,17 @@ public sealed class MongoEnableQueryAttribute : EnableQueryAttribute
         return queryable.AppendStage(projectionStage);
     }
 
-    private static IQueryable ApplyPaging<T>(IQueryable<T> queryable, int pageSize)
-        => new TruncatedCollection<T>(queryable, pageSize).AsQueryable();
+    private static IQueryable ApplyPaging<T>(IQueryable<T> queryable, int pageSize, ODataQueryOptions queryOptions)
+    {
+        ODataFeature odataFeature = queryOptions.Request.ODataFeature() as ODataFeature;
+        var result = new TruncatedCollection<T>(queryable, pageSize);
+        if (result.IsTruncated && odataFeature.NextLink == null)
+        {
+            __odataFeaturePageSize.SetValue(odataFeature, pageSize);
+        }
+
+        return result.AsQueryable();
+    }
 
     private static IQueryable ApplySelectExpand<T>(IQueryable<T> queryable, ODataQueryOptions queryOptions)
     {
@@ -184,6 +197,6 @@ public sealed class MongoEnableQueryAttribute : EnableQueryAttribute
             HandleNullPropagation = HandleNullPropagation,
             HandleReferenceNavigationPropertyExpandFilter = HandleReferenceNavigationPropertyExpandFilter,
             EnableCorrelatedSubqueryBuffering = EnableCorrelatedSubqueryBuffering,
-            IgnoredQueryOptions = ignoredQueryOptions
+            IgnoredQueryOptions = ignoredQueryOptions,
         };
 }
