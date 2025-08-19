@@ -9,6 +9,9 @@
     "@odata.count": {
       "type": "integer"
     },
+    "@odata.nextLink": {
+      "type": "string"
+    },
     "value": {
       "type": "array",
       "items": {

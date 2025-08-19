@@ -6,6 +6,9 @@
     "@odata.context": {
       "type": "string"
     },
+    "@odata.nextLink": {
+      "type": "string"
+    },
     "value": {
       "type": "array",
       "items": {
