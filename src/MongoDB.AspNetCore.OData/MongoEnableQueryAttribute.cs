@@ -45,19 +45,6 @@ public sealed class MongoEnableQueryAttribute : EnableQueryAttribute
         BindingFlags.Instance | BindingFlags.NonPublic);
     private static readonly MongoExpressionRewriter __updater = new MongoExpressionRewriter();
 
-    public MongoEnableQueryAttribute()
-    {
-        AllowedQueryOptions =
-            AllowedQueryOptions.Filter |
-            AllowedQueryOptions.Expand |
-            AllowedQueryOptions.Select |
-            AllowedQueryOptions.OrderBy |
-            AllowedQueryOptions.Top |
-            AllowedQueryOptions.Skip |
-            AllowedQueryOptions.Count |
-            AllowedQueryOptions.Compute;
-    }
-
     public override IQueryable ApplyQuery(IQueryable queryable, ODataQueryOptions queryOptions)
     {
         if (!IsMongoQueryable(queryable))
@@ -121,8 +108,17 @@ public sealed class MongoEnableQueryAttribute : EnableQueryAttribute
 
     public override void ValidateQuery(HttpRequest request, ODataQueryOptions queryOptions)
     {
-        base.ValidateQuery(request, queryOptions);
+        if (queryOptions.Apply != null)
+        {
+            throw new NotSupportedException("Query option 'Apply' is not supported.");
+        }
 
+        if (queryOptions.Search != null)
+        {
+            throw new NotSupportedException("Query option 'Search' is not supported.");
+        }
+
+        base.ValidateQuery(request, queryOptions);
         // Store this into the http context in case we will need to enforce projection
         request.HttpContext.Items[nameof(ODataQueryOptions)] = queryOptions;
     }
