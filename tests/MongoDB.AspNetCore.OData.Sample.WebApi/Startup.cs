@@ -46,7 +46,7 @@ public class Startup
         services.AddControllers().AddOData(
             options =>
             {
-                options.Select().Filter().OrderBy().Expand().Count().SetMaxTop(100).AddRouteComponents(
+                options.EnableQueryFeatures(100).AddRouteComponents(
                     "odata",
                     modelBuilder.GetEdmModel());
             });
