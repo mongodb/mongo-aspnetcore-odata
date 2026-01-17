@@ -14,6 +14,7 @@
 
 using Microsoft.AspNetCore.OData;
 using Microsoft.OData.ModelBuilder;
+using MongoDB.AspNetCore.OData.Sample.WebApi.Controllers;
 using MongoDB.AspNetCore.OData.Sample.WebApi.Models;
 using MongoDB.Driver;
 
@@ -42,6 +43,7 @@ public class Startup
         modelBuilder.EntitySet<City>("Cities");
         modelBuilder.EntitySet<Region>("Regions");
         modelBuilder.EntitySet<CountryModel>("Countries");
+        modelBuilder.EntitySet<PostCodeViewModel>("PostCodes");
 
         services.AddControllers().AddOData(
             options =>

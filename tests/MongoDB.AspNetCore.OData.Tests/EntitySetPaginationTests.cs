@@ -12,9 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using MongoDB.AspNetCore.OData.Sample.WebApi.Controllers;
 using MongoDB.AspNetCore.OData.Sample.WebApi.Models;
 
 namespace MongoDB.AspNetCore.OData.Tests;
@@ -35,5 +38,20 @@ public class EntitySetPaginationTests
         _ = await TestServer.GetAndValidateODataRequestAsync<City>(
             nextLink,
             "cities_structural", d => !firstPage.Contains(d.Id));
+    }
+
+    [TestMethod]
+    public async Task PaginationWithNonBsonKey()
+    {
+        var requestUrl = "/odata/postcodes";
+        var firstPage = new HashSet<string>();
+        var response_document = await TestServer.GetAndValidateODataRequestAsync<PostCodeViewModel>(
+            requestUrl,
+            "postcodes_structural", d => firstPage.Add(d.CodeId));
+
+        var nextLink = response_document.RootElement.GetProperty("@odata.nextLink").GetString();
+        _ = await TestServer.GetAndValidateODataRequestAsync<PostCodeViewModel>(
+            nextLink,
+            "postcodes_structural", d => firstPage.All(p => string.Compare(p, d.CodeId, StringComparison.OrdinalIgnoreCase) < 0));
     }
 }

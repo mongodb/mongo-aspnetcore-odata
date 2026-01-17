@@ -28,6 +28,7 @@ internal static class DatabaseInitializer
 
         BulkUpsert(database.GetCollection<Country>("countries"), Countries(), d => d.Id);
         BulkUpsert(database.GetCollection<City>("cities"), Cities(), d => d.Id);
+        BulkUpsert(database.GetCollection<PostCode>("postCodes"), PostCodes(), d => d.Id);
     }
 
     private static void BulkUpsert<TDocument, TField>(
@@ -46,6 +47,36 @@ internal static class DatabaseInitializer
 
         collection.BulkWrite(bulkOperations);
     }
+
+    private static IEnumerable<PostCode> PostCodes() => new []
+    {
+        new PostCode { Id = 1, Code = "M4R", Place = "Central Toronto"},
+        new PostCode { Id = 2, Code = "M5K", Place = "Downtown Toronto"},
+        new PostCode { Id = 3, Code = "M5S", Place = "Downtown Toronto"},
+        new PostCode { Id = 4, Code = "M4M", Place = "Toronto" },
+        new PostCode { Id = 5, Code = "H1B", Place = "Montreal East" },
+        new PostCode { Id = 6, Code = "H2V", Place = "Montreal" },
+        new PostCode { Id = 7, Code = "V6Z", Place = "Vancouver" },
+        new PostCode { Id = 8, Code = "T2P", Place = "Calgary City Centre" },
+        new PostCode { Id = 9, Code = "T3M", Place = "Calgary Cranston" },
+        new PostCode { Id = 10, Code = "T3N", Place = "Calgary Northeast" },
+        new PostCode { Id = 11, Code = "T3R", Place = "Calgary Northwest" },
+        new PostCode { Id = 12, Code = "T3K", Place = "Calgary" },
+        new PostCode { Id = 13, Code = "T6M", Place = "Edmonton Southwest" },
+        new PostCode { Id = 14, Code = "T6R", Place = "Edmonton (Riverbend)" },
+        new PostCode { Id = 15, Code = "T6T", Place = "Edmonton (Meadows)" },
+        new PostCode { Id = 16, Code = "T6X", Place = "Edmonton (Ellerslie)" },
+        new PostCode { Id = 17, Code = "T6J", Place = "Edmonton (Kaskitayo)" },
+        new PostCode { Id = 18, Code = "T5A", Place = "Edmonton" },
+
+        new PostCode { Id = 19, Code = "K1Y", Place = "Ottawa West" },
+        new PostCode { Id = 20, Code = "K1S", Place = "Ottawa (The Glebe / Ottawa South / Ottawa East)" },
+        new PostCode { Id = 21, Code = "K1K", Place = "Ottawa (Overbrook)" },
+        new PostCode { Id = 22, Code = "K1L", Place = "Ottawa (Vanier)" },
+        new PostCode { Id = 23, Code = "K1Z", Place = "Ottawa (Westboro)" },
+        new PostCode { Id = 24, Code = "K0A", Place = "Ottawa" },
+
+    };
 
     private static IEnumerable<Country> Countries()
         => new[]
