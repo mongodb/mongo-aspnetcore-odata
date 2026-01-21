@@ -480,7 +480,7 @@ axes:
         display_name: "Windows 64-bit"
         variables:
           OS: "windows-64"
-        run_on: windows-64-vs2017-test
+        run_on: windows-2022-latest-small
       - id: "ubuntu-1804"
         display_name: "Ubuntu 18.04"
         variables:
@@ -499,10 +499,6 @@ axes:
         display_name: "latest"
         variables:
           DRIVER_VERSION: "latest"
-      - id: "3.0.0"
-        display_name: "3.0.0"
-        variables:
-          DRIVER_VERSION: "3.0.0"
 
 buildvariants:
 - matrix_name: "tests"
