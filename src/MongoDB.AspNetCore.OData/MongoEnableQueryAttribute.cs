@@ -15,6 +15,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -39,6 +40,9 @@ public sealed class MongoEnableQueryAttribute : EnableQueryAttribute
         BindingFlags.Static | BindingFlags.NonPublic);
     private static readonly MethodInfo __applySelectExpandMethodInfo = typeof(MongoEnableQueryAttribute).GetMethod(
         nameof(ApplySelectExpand),
+        BindingFlags.Static | BindingFlags.NonPublic);
+    private static readonly MethodInfo __applyDefaultSortMethodInfo = typeof(MongoEnableQueryAttribute).GetMethod(
+        nameof(ApplyDefaultSort),
         BindingFlags.Static | BindingFlags.NonPublic);
     private static readonly PropertyInfo __odataFeaturePageSize = typeof(ODataFeature).GetProperty(
         "PageSize",
@@ -65,6 +69,11 @@ public sealed class MongoEnableQueryAttribute : EnableQueryAttribute
         }
 
         queryable = ApplyTransformationMethod(__applyProjectionMethodInfo, queryable, queryOptions);
+        if (queryOptions.OrderBy == null)
+        {
+            queryable = ApplyTransformationMethod(__applyDefaultSortMethodInfo, queryable, queryOptions);
+        }
+
         if (PageSize > 0)
         {
             queryable = ApplyTransformationMethod(__applyPagingMethodInfo, queryable, PageSize, queryOptions);
@@ -168,6 +177,46 @@ public sealed class MongoEnableQueryAttribute : EnableQueryAttribute
         var allowedOptions = AllowedQueryOptions.Select | AllowedQueryOptions.Expand | AllowedQueryOptions.Compute;
         var ignoreOption = AllowedQueryOptions.All & ~allowedOptions;
         return queryOptions.ApplyTo(wrappedQueryable, ignoreOption);
+    }
+
+    private static IQueryable ApplyDefaultSort<T>(IQueryable<T> queryable, ODataQueryOptions queryOptions)
+    {
+        if (queryOptions.Context.ElementType is not EdmEntityType edmEntity)
+        {
+            return queryable;
+        }
+
+        var key = edmEntity.Key();
+        if (key == null || !key.Any())
+        {
+            return queryable;
+        }
+
+        SortDefinition<T> sortDefinition;
+        if (key.Count() == 1)
+        {
+            sortDefinition = Builders<T>.Sort.Ascending(GetPropertyByName(key.Single().Name));
+        }
+        else
+        {
+            var fields = key.Select(k => Builders<T>.Sort.Ascending(GetPropertyByName(k.Name)));
+            sortDefinition = Builders<T>.Sort.Combine(fields);
+        }
+
+        return queryable.AppendStage(PipelineStageDefinitionBuilder.Sort(sortDefinition));
+
+        static Expression<Func<T, object>> GetPropertyByName(string name)
+        {
+            ParameterExpression parameter = Expression.Parameter(typeof(T), "x");
+            Expression property = Expression.PropertyOrField(parameter, name);
+
+            if (property.Type.IsValueType)
+            {
+                property = Expression.Convert(property, typeof(object));
+            }
+
+            return Expression.Lambda<Func<T, object>>(property, parameter);
+        }
     }
 
     private static IQueryable ApplyTransformationMethod(MethodInfo method, params object[] parameters)

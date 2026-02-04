@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "@odata.context": {
+      "type": "string"
+    },
+    "@odata.nextLink": {
+      "type": "string"
+    },
+    "value": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "Place": {
+            "type": "string"
+          },
+          "CodeId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "Place",
+          "CodeId"
+        ]
+      }
+    }
+  },
+  "required": [
+    "@odata.context",
+    "value"
+  ]
+}
