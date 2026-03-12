@@ -9,12 +9,12 @@ if [[ $OS =~ [Ww]indows.* ]]; then
   echo "Installing ASP.NET Core 5.0 runtime..."
   powershell.exe "./dotnet-install.ps1" -Channel 5.0 -InstallDir "$DOTNET_SDK_PATH" -NoPath -Runtime aspnetcore
   echo "Installing .NET LTS SDK..."
-  powershell.exe "./dotnet-install.ps1" -Channel LTS -InstallDir "$DOTNET_SDK_PATH" -NoPath
+  powershell.exe "./dotnet-install.ps1" -Version 10.0.104 -InstallDir "$DOTNET_SDK_PATH" -NoPath
 else
   echo "Downloading .NET SDK installer..."
   curl -Lfo "./dotnet-install.sh" https://dot.net/v1/dotnet-install.sh
   echo "Installing ASP.NET Core 5.0 runtime..."
   bash "./dotnet-install.sh" --channel 5.0 --install-dir "$DOTNET_SDK_PATH" --no-path --runtime aspnetcore
   echo "Installing .NET LTS SDK..."
-  bash "./dotnet-install.sh" --channel LTS --install-dir "$DOTNET_SDK_PATH" --no-path
+  bash "./dotnet-install.sh" --version 10.0.104 --install-dir "$DOTNET_SDK_PATH" --no-path
 fi
