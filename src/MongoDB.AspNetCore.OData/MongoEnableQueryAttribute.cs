@@ -56,6 +56,8 @@ public sealed class MongoEnableQueryAttribute : EnableQueryAttribute
             return base.ApplyQuery(queryable, queryOptions);
         }
 
+        ClientMetadata.Append(queryable);
+
         var ignoreQueryOptions = AllowedQueryOptions.Select | AllowedQueryOptions.Expand;
         var querySettings = ToQuerySettings(queryOptions.Request.GetTimeZoneInfo(), ignoreQueryOptions);
         queryable = queryOptions.ApplyTo(queryable, querySettings);
