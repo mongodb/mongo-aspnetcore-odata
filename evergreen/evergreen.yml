@@ -485,10 +485,6 @@ axes:
         display_name: "4.4"
         variables:
           VERSION: "4.4"
-      - id: "4.2"
-        display_name: "4.2"
-        variables:
-          VERSION: "4.2"
 
   - id: os
     display_name: OS
@@ -519,7 +515,7 @@ axes:
 
 buildvariants:
 - matrix_name: "tests"
-  matrix_spec: { version: ["4.2", "4.4", "5.0", "6.0"], os: ["windows-64", "ubuntu-1804"], driver: "*" }
+  matrix_spec: { version: ["4.4", "5.0", "6.0"], os: ["windows-64", "ubuntu-1804"], driver: "*" }
   display_name: "${driver} Driver on ${os} with ${version} Server"
   tags: ["tests-variant"]
   tasks:
