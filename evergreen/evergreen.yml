@@ -465,6 +465,10 @@ axes:
         display_name: "rapid"
         variables:
           VERSION: "rapid"
+      - id: "9.0"
+        display_name: "9.0"
+        variables:
+          VERSION: "9.0"
       - id: "8.0"
         display_name: "8.0"
         variables:
@@ -494,16 +498,16 @@ axes:
         variables:
           OS: "windows-64"
         run_on: windows-2022-latest-small
-      - id: "ubuntu-1804"
-        display_name: "Ubuntu 18.04"
-        variables:
-          OS: "ubuntu-1804"
-        run_on: ubuntu1804-test
       - id: "ubuntu-2004"
         display_name: "Ubuntu 20.04"
         variables:
           OS: "ubuntu-2004"
-        run_on: ubuntu2004-test
+        run_on: ubuntu2004-small
+      - id: "ubuntu-2204"
+        display_name: "Ubuntu 22.04"
+        variables:
+          OS: "ubuntu-2204"
+        run_on: ubuntu2204-small
 
   - id: driver
     display_name: MongoDB.Driver Version
@@ -515,14 +519,14 @@ axes:
 
 buildvariants:
 - matrix_name: "tests"
-  matrix_spec: { version: ["4.4", "5.0", "6.0"], os: ["windows-64", "ubuntu-1804"], driver: "*" }
+  matrix_spec: { version: ["4.4", "5.0", "6.0", "7.0", "8.0"], os: ["windows-64", "ubuntu-2004"], driver: "*" }
   display_name: "${driver} Driver on ${os} with ${version} Server"
   tags: ["tests-variant"]
   tasks:
     - name: test-net50
 
-- matrix_name: "tests-7.0+"
-  matrix_spec: { version: ["7.0", "8.0", "latest", "rapid"], os: ["windows-64", "ubuntu-2004"], driver: "*" }
+- matrix_name: "tests-9.0+"
+  matrix_spec: { version: ["9.0", "latest", "rapid"], os: ["windows-64", "ubuntu-2204"], driver: "*" }
   display_name: "${driver} Driver on ${os} with ${version} Server"
   tags: ["tests-variant"]
   tasks:
@@ -535,7 +539,7 @@ buildvariants:
     - name: package-pack
 
 - matrix_name: "smoke-tests"
-  matrix_spec: { version: "latest", os: ["windows-64", "ubuntu-2004"], driver: "latest" }
+  matrix_spec: { version: "latest", os: ["windows-64", "ubuntu-2204"], driver: "latest" }
   display_name: "Smoke tests on ${os}"
   tags: ["smoke-tests-variant"]
   tasks:
