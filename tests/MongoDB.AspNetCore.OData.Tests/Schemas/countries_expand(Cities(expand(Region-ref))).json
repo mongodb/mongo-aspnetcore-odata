@@ -1,0 +1,130 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "@odata.context": {
+      "type": "string"
+    },
+    "@odata.nextLink": {
+      "type": "string"
+    },
+    "value": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "Id": {
+            "type": "string"
+          },
+          "Name": {
+            "type": "string"
+          },
+          "Population": {
+            "type": "integer"
+          },
+          "Area": {
+            "type": "integer"
+          },
+          "Capital": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "CityId": {
+                "type": "integer"
+              },
+              "Name": {
+                "type": "string"
+              },
+              "Population": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "CityId",
+              "Name",
+              "Population"
+            ]
+          },
+          "Cities": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "Id": {
+                  "type": "integer"
+                },
+                "CountryId": {
+                  "type": "string"
+                },
+                "Name": {
+                  "type": "string"
+                },
+                "Population": {
+                  "type": "integer"
+                },
+                "Density": {
+                  "type": "number"
+                },
+                "AverageTemperatureMin": {
+                  "type": "number"
+                },
+                "AverageTemperatureMax": {
+                  "type": "number"
+                },
+                "Date": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "Region": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "@odata.id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "@odata.id"
+                  ]
+                },
+                "Tags": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "Id",
+                "CountryId",
+                "Name",
+                "Population",
+                "Density",
+                "Tags",
+                "AverageTemperatureMin",
+                "AverageTemperatureMax",
+                "Date",
+                "Region"
+              ]
+            }
+          }
+        },
+        "required": [
+          "Id",
+          "Name",
+          "Population",
+          "Area",
+          "Capital",
+          "Cities"
+        ]
+      }
+    }
+  },
+  "required": [
+    "@odata.context",
+    "value"
+  ]
+}

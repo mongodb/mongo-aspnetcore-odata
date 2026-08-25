@@ -60,11 +60,8 @@ internal sealed class MongoProjectionSelectItemTranslator<TSource> : SelectItemT
                 result.Add(_currentEntityType.StructuralProperties().Project<TSource>(_currentPath));
             }
 
-            if (item.SelectAndExpand.SelectedItems.Any())
-            {
-                result.AddRange(item.SelectAndExpand.SelectedItems
-                    .Select(s => s.TranslateWith(this)));
-            }
+            result.AddRange(item.SelectAndExpand.SelectedItems
+                .Select(s => s.TranslateWith(this)));
         }
 
         _currentPath = originalCurrentPath;
