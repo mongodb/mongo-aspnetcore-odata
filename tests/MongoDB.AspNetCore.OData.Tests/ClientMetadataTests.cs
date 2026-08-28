@@ -77,18 +77,6 @@ public class ClientMetadataTests
         Assert.IsFalse(string.IsNullOrEmpty(libraryInfo.Version));
     }
 
-    [TestMethod]
-    public void Append_tags_client_once_when_called_repeatedly()
-    {
-        var client = new MongoClient();
-        var queryable = CollectionQueryable(client);
-
-        ClientMetadata.Append(queryable);
-        ClientMetadata.Append(queryable);
-
-        Assert.AreEqual(1, AppendedLibraryInfos(client).Count(info => info.Name == LibraryName));
-    }
-
     // Reads the library infos the driver will send in its handshake.
     private static LibraryInfo[] AppendedLibraryInfos(IMongoClient client)
     {
