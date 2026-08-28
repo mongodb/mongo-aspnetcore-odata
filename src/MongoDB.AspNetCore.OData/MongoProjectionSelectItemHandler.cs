@@ -25,7 +25,7 @@ internal sealed class MongoProjectionSelectItemHandler<TSource> : SelectItemHand
 {
     private IEdmEntityType _currentEntityType;
     private string _currentPath = string.Empty;
-    private List<string> _includedPaths = new();
+    private readonly List<string> _includedPaths = new();
 
     public MongoProjectionSelectItemHandler(ODataQueryContext context)
     {
@@ -72,15 +72,8 @@ internal sealed class MongoProjectionSelectItemHandler<TSource> : SelectItemHand
 
     public override void Handle(ExpandedReferenceSelectItem item)
     {
-        var originalCurrentPath = _currentPath;
-        var originalCurrentEntityType = _currentEntityType;
-        _currentPath = BuildPath(item.PathToNavigationProperty);
-        _currentEntityType = item.NavigationSource.EntityType();
-
-        Include(_currentEntityType.DeclaredKey);
-
-        _currentPath = originalCurrentPath;
-        _currentEntityType = originalCurrentEntityType;
+        var path = BuildPath(item.PathToNavigationProperty);
+        IncludePath(path);
     }
 
     public void Include(IEnumerable<IEdmStructuralProperty> properties)
