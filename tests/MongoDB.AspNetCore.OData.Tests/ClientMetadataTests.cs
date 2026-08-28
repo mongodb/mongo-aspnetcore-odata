@@ -41,6 +41,21 @@ public class ClientMetadataTests
     }
 
     [TestMethod]
+    public void TryGetClient_returns_owning_client_for_projected_queryable()
+    {
+        var client = new MongoClient();
+        var items = CollectionQueryable(client);
+        var others = client.GetDatabase("test").GetCollection<Other>("others").AsQueryable();
+
+        // A composed queryable whose ElementType is no longer the queried collection's document type.
+        var projected = items.GroupJoin(others, i => i.Id, o => o.ItemId, (i, o) => new Projection { Id = i.Id, Others = o });
+
+        var result = ClientMetadata.TryGetClient(projected);
+
+        Assert.AreSame(client, result);
+    }
+
+    [TestMethod]
     public void TryGetClient_returns_null_for_non_mongo_queryable()
     {
         var queryable = new List<Item>().AsQueryable();
@@ -98,5 +113,17 @@ public class ClientMetadataTests
     private class Item
     {
         public int Id { get; set; }
+    }
+
+    private class Other
+    {
+        public int Id { get; set; }
+        public int ItemId { get; set; }
+    }
+
+    private class Projection
+    {
+        public int Id { get; set; }
+        public IEnumerable<Other> Others { get; set; }
     }
 }
