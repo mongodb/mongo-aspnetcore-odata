@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.OData.Query;
 using Microsoft.OData.Edm;
@@ -41,7 +42,7 @@ internal sealed class MongoProjectionSelectItemTranslator<TSource> : SelectItemT
 
     public override ProjectionDefinition<TSource> Translate(ExpandedNavigationSelectItem item)
     {
-        ProjectionDefinition<TSource> result;
+        List<ProjectionDefinition<TSource>> result = new();
         var originalCurrentPath = _currentPath;
         var originalCurrentEntityType = _currentEntityType;
         _currentPath = BuildPath(item.PathToNavigationProperty);
@@ -50,23 +51,22 @@ internal sealed class MongoProjectionSelectItemTranslator<TSource> : SelectItemT
         if (item.FilterOption != null || item.ComputeOption != null)
         {
             // Calculation and filtration will be done in-memory
-            result = Builders<TSource>.Projection.Include(_currentPath);
-        }
-        else if (item.SelectAndExpand.AllSelected)
-        {
-            result = _currentEntityType.StructuralProperties().Project<TSource>(_currentPath);
+            result.Add(Builders<TSource>.Projection.Include(_currentPath));
         }
         else
         {
-            result = item.SelectAndExpand.SelectedItems
-                .Select(s => s.TranslateWith(this))
-                .ToList()
-                .Combine();
+            if (item.SelectAndExpand.AllSelected)
+            {
+                result.Add(_currentEntityType.StructuralProperties().Project<TSource>(_currentPath));
+            }
+
+            result.AddRange(item.SelectAndExpand.SelectedItems
+                .Select(s => s.TranslateWith(this)));
         }
 
         _currentPath = originalCurrentPath;
         _currentEntityType = originalCurrentEntityType;
-        return result;
+        return result.Combine();
     }
 
     public override ProjectionDefinition<TSource> Translate(ExpandedCountSelectItem item)
