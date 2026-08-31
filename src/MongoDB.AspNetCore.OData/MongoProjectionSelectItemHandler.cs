@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.OData.Query;
@@ -118,7 +119,7 @@ internal sealed class MongoProjectionSelectItemHandler<TSource> : SelectItemHand
 
     private void IncludePath(string path)
     {
-        if (_includedPaths.Any(i => i == path || path.StartsWith($"{i}.")))
+        if (_includedPaths.Any(i => i == path || path.StartsWith($"{i}.", StringComparison.Ordinal)))
         {
             // No needs to add the path if it's already included or parent property(s) is already included:
             // path = "NestedObject.Name", when _includedPaths = [ "NestedObject" ]
@@ -129,7 +130,7 @@ internal sealed class MongoProjectionSelectItemHandler<TSource> : SelectItemHand
 
         // Need to remove any included properties that is nested to the just added one
         var pathPrefixToRemove = $"{path}.";
-        _includedPaths.RemoveAll(i => i.StartsWith(pathPrefixToRemove));
+        _includedPaths.RemoveAll(i => i.StartsWith(pathPrefixToRemove, StringComparison.Ordinal));
     }
 
     private string BuildPath(ODataPath path)
