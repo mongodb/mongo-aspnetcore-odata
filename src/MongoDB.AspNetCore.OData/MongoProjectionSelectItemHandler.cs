@@ -72,8 +72,23 @@ internal sealed class MongoProjectionSelectItemHandler<TSource> : SelectItemHand
 
     public override void Handle(ExpandedReferenceSelectItem item)
     {
-        var path = BuildPath(item.PathToNavigationProperty);
-        IncludePath(path);
+        var originalCurrentPath = _currentPath;
+        var originalCurrentEntityType = _currentEntityType;
+        _currentPath = BuildPath(item.PathToNavigationProperty);
+        _currentEntityType = item.NavigationSource.EntityType();
+
+        if (item.FilterOption != null || item.ComputeOption != null)
+        {
+            // Calculation and filtration will be done in-memory
+            IncludePath(_currentPath);
+        }
+        else
+        {
+            Include(_currentEntityType.DeclaredKey);
+        }
+
+        _currentPath = originalCurrentPath;
+        _currentEntityType = originalCurrentEntityType;
     }
 
     public void Include(IEnumerable<IEdmStructuralProperty> properties)
