@@ -136,24 +136,28 @@ public sealed class MongoEnableQueryAttribute : EnableQueryAttribute
 
     private static IQueryable ApplyProjection<T>(IQueryable<T> queryable, ODataQueryOptions queryOptions)
     {
-        var fieldProjects = new List<ProjectionDefinition<T>>();
         var entityType = queryOptions.Context.NavigationSource.EntityType();
+        var projectionSelectItemHandler = new MongoProjectionSelectItemHandler<T>(queryOptions.Context);
 
         if (queryOptions.Compute != null || queryOptions.SelectExpand == null || queryOptions.SelectExpand.SelectExpandClause.AllSelected)
         {
-            fieldProjects.Add(entityType.StructuralProperties().Project<T>());
+            projectionSelectItemHandler.Include(entityType.StructuralProperties());
         }
 
         if (queryOptions.SelectExpand != null)
         {
             foreach (var selectedItem in queryOptions.SelectExpand.SelectExpandClause.SelectedItems)
             {
-                var translator = new MongoProjectionSelectItemTranslator<T>(queryOptions.Context);
-                fieldProjects.Add(selectedItem.TranslateWith(translator));
+                selectedItem.HandleWith(projectionSelectItemHandler);
             }
         }
 
-        var projection = fieldProjects.Combine();
+        var projection = projectionSelectItemHandler.ToProjectionDefinition();
+        if (projection == null)
+        {
+            return queryable;
+        }
+
         var projectionStage = PipelineStageDefinitionBuilder.Project<T, T>(projection);
         return queryable.AppendStage(projectionStage);
     }
