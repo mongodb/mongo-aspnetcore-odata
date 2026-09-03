@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace MongoDB.AspNetCore.OData.Sample.WebApi.Models;
@@ -19,12 +20,19 @@ namespace MongoDB.AspNetCore.OData.Sample.WebApi.Models;
 public class City
 {
     public long Id { get; set; }
+
     public string CountryId { get; set; }
+
     public string Name { get; set; }
+
     public Region Region { get; set; }
+
     public int Population { get; set; }
 
-    public double Density { get; set; }
+    // This attribute is only needed to let MongoDB.AspNetCore.OData.Tests consume the same models.
+    // Both OData and MongoDB.Driver ignore this attribute. OData property is renamed via code in Startup.cs.
+    [JsonPropertyName("Density")]
+    public double PopulationDensity { get; set; }
 
     public string[] Tags { get; set; }
 

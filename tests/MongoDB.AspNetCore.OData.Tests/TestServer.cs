@@ -94,7 +94,8 @@ internal static class TestServer
     private static async ValueTask ValidateResponseSchemaAsync(JsonDocument document, string schemaName)
     {
         var schema = await LoadSchemaAsync(schemaName);
-        var evaluationResult = schema.Evaluate(document, new EvaluationOptions {
+        var evaluationResult = schema.Evaluate(document, new EvaluationOptions
+        {
             OutputFormat = OutputFormat.List
         });
 
