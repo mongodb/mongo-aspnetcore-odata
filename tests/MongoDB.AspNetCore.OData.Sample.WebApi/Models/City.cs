@@ -25,7 +25,10 @@ public class City
 
     public string Name { get; set; }
 
-    public Region Region { get; set; }
+    // This attribute is only needed to let MongoDB.AspNetCore.OData.Tests consume the same models.
+    // Both OData and MongoDB.Driver ignore this attribute. OData property is renamed via code in Startup.cs.
+    [JsonPropertyName("Region")]
+    public Region AdminDivision { get; set; }
 
     public int Population { get; set; }
 

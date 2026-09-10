@@ -48,6 +48,9 @@ public class Startup
         modelBuilder.EntityType<City>()
             .Property(c => c.PopulationDensity)
             .Name = "Density";
+        modelBuilder.EntityType<City>()
+            .HasOptional(c => c.AdminDivision)
+            .Name = "Region";
 
         services.AddControllers().AddOData(
             options =>

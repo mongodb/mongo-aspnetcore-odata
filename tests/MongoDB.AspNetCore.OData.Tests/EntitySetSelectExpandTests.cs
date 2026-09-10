@@ -41,10 +41,11 @@ public class EntitySetSelectExpandTests
     [DataRow("/odata/Countries?$expand=*/$ref", "countries_expand(Regions-ref,Cities-ref)", DisplayName = "expand(all-ref)")]
     [DataRow("/odata/Countries?$select=Id&$expand=Regions", "countries_select(Id)expand(Regions)", DisplayName = "select-expand")]
     [DataRow("/odata/Countries?$select=Id&$expand=Regions($select=Name)", "countries_select(Id)expand(Regions(select=Name))", DisplayName = "select-expand(nestedselect)")]
-    [DataRow("/odata/countries?$expand=cities($expand=region)", "countries_expand(Cities(expand(Region)))", DisplayName = "expand(cities(expand(region)))")]
-    [DataRow("/odata/countries?$expand=cities(expand=region/$ref)", "countries_expand(Cities(expand(Region-ref)))", DisplayName = "expand(cities(expand(region-ref)))")]
-    [DataRow("/odata/countries?$expand=cities(select=name;$expand=region)", "countries_expand(Cities(select(Name),expand(Region)))", DisplayName = "expand(cities(select(name),expand(region)))")]
-    [DataRow("/odata/countries?$expand=capital/region", "countries_expand(Capital-Region)", DisplayName = "expand(capital-region)")]
+    [DataRow("/odata/Countries?$expand=Cities($expand=Region)", "countries_expand(Cities(expand(Region)))", DisplayName = "expand(cities(expand(region)))")]
+    [DataRow("/odata/Countries?$expand=Cities(expand=Region/$ref)", "countries_expand(Cities(expand(Region-ref)))", DisplayName = "expand(cities(expand(region-ref)))")]
+    [DataRow("/odata/Countries?$expand=Cities(select=Name;$expand=Region)", "countries_expand(Cities(select(Name),expand(Region)))", DisplayName = "expand(cities(select(name),expand(region)))")]
+    [DataRow("/odata/Countries?$expand=Capital/Region", "countries_expand(Capital-Region)", DisplayName = "expand(capital-region)")]
+    [DataRow("/odata/Cities/?$select=Density", "cities_select(Density)", DisplayName = "select(density)")]
     public Task SelectExpandAsync(string requestUrl, string schemaName)
         => TestServer.GetAndValidateODataRequestAsync(requestUrl, schemaName);
 
