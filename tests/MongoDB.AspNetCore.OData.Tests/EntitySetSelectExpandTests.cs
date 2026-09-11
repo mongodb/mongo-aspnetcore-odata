@@ -66,7 +66,6 @@ public class EntitySetSelectExpandTests
             "cities_select(Density)",
             (City city) => city.PopulationDensity != 0);
 
-
     public static string GetFilteredExpandTestDisplayName(MethodInfo methodInfo, object[] values)
         => s_filteredExpandTestCases[(int)values[0]].Name;
 
