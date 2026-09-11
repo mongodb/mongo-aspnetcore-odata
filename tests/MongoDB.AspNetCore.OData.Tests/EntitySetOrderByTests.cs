@@ -69,6 +69,10 @@ public class EntitySetOrderByTests
                 value = value.GetType().GetProperty(property).GetValue(value);
             }
 
+            Assert.IsNotNull(value);
+            var defaultValue = value.GetType().IsValueType ? Activator.CreateInstance(value.GetType()) : null;
+            Assert.AreNotEqual(defaultValue, value, "Value should not be default value");
+
             if (lastValue != null)
             {
                 Assert.IsTrue(itemsComparerValidator(value, lastValue),

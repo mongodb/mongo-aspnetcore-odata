@@ -47,11 +47,11 @@ public class EntitySetPaginationTests
         var firstPage = new HashSet<string>();
         var response_document = await TestServer.GetAndValidateODataRequestAsync<PostCodeViewModel>(
             requestUrl,
-            "postcodes_structural", d => firstPage.Add(d.CodeId));
+            "postcodes_structural", d => firstPage.Add(d.PostCodeId));
 
         var nextLink = response_document.RootElement.GetProperty("@odata.nextLink").GetString();
         _ = await TestServer.GetAndValidateODataRequestAsync<PostCodeViewModel>(
             nextLink,
-            "postcodes_structural", d => firstPage.All(p => string.Compare(p, d.CodeId, StringComparison.OrdinalIgnoreCase) < 0));
+            "postcodes_structural", d => firstPage.All(p => string.Compare(p, d.PostCodeId, StringComparison.OrdinalIgnoreCase) < 0));
     }
 }

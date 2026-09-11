@@ -51,6 +51,9 @@ public class Startup
         modelBuilder.EntityType<City>()
             .HasOptional(c => c.AdminDivision)
             .Name = "Region";
+        modelBuilder.EntityType<PostCodeViewModel>()
+            .Property(p => p.PostCodeId)
+            .Name = "CodeId";
 
         services.AddControllers().AddOData(
             options =>
