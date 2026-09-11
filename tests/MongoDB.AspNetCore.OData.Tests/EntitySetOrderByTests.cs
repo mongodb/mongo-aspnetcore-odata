@@ -33,6 +33,8 @@ public class EntitySetOrderByTests
     [DataRow("Name", "Name", true, DisplayName = "string, descending")]
     [DataRow("Population", "Population", false, DisplayName = "int, ascending")]
     [DataRow("Population", "Population", true, DisplayName = "int, descending")]
+    [DataRow("Density", "PopulationDensity", false, DisplayName = "renamed property, ascending")]
+    [DataRow("Density", "PopulationDensity", true, DisplayName = "renamed property, descending")]
     [DataRow("Region/Name", "AdminDivision.Name", false, DisplayName = "nested property, ascending")]
     [DataRow("Region/Name", "AdminDivision.Name", true, DisplayName = "nested property, descending")]
     public async Task OrderByAsync(string odataPropertyPath, string clrPropertyPath, bool isDescending)

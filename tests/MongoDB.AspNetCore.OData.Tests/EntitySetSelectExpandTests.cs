@@ -45,7 +45,6 @@ public class EntitySetSelectExpandTests
     [DataRow("/odata/Countries?$expand=Cities(expand=Region/$ref)", "countries_expand(Cities(expand(Region-ref)))", DisplayName = "expand(cities(expand(region-ref)))")]
     [DataRow("/odata/Countries?$expand=Cities(select=Name;$expand=Region)", "countries_expand(Cities(select(Name),expand(Region)))", DisplayName = "expand(cities(select(name),expand(region)))")]
     [DataRow("/odata/Countries?$expand=Capital/Region", "countries_expand(Capital-Region)", DisplayName = "expand(capital-region)")]
-    [DataRow("/odata/Cities/?$select=Density", "cities_select(Density)", DisplayName = "select(density)")]
     public Task SelectExpandAsync(string requestUrl, string schemaName)
         => TestServer.GetAndValidateODataRequestAsync(requestUrl, schemaName);
 
@@ -59,6 +58,14 @@ public class EntitySetSelectExpandTests
             "countries_expand(Cities)",
             (CountryModel country) => country.Cities.All(testCase.ItemValidator));
     }
+
+    [TestMethod]
+    public Task SelectShouldReturnRenamedFieldValue()
+        => TestServer.GetAndValidateODataRequestAsync(
+            "/odata/Cities/?$select=Density",
+            "cities_select(Density)",
+            (City city) => city.PopulationDensity != 0);
+
 
     public static string GetFilteredExpandTestDisplayName(MethodInfo methodInfo, object[] values)
         => s_filteredExpandTestCases[(int)values[0]].Name;
