@@ -15,6 +15,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.AspNetCore.OData.Edm;
 using Microsoft.AspNetCore.OData.Query;
 using Microsoft.OData.Edm;
 using Microsoft.OData.UriParser;
@@ -24,12 +25,14 @@ namespace MongoDB.AspNetCore.OData;
 
 internal sealed class MongoProjectionSelectItemHandler<TSource> : SelectItemHandler
 {
+    private readonly IEdmModel _edmModel;
     private IEdmEntityType _currentEntityType;
     private string _currentPath = string.Empty;
     private readonly List<string> _includedPaths = new();
 
     public MongoProjectionSelectItemHandler(ODataQueryContext context)
     {
+        _edmModel = context.Model;
         _currentEntityType = context.NavigationSource.EntityType();
     }
 
@@ -96,7 +99,7 @@ internal sealed class MongoProjectionSelectItemHandler<TSource> : SelectItemHand
     {
         foreach (var property in properties)
         {
-            var path = property.Name;
+            var path = _edmModel.GetClrPropertyName(property);
             if (!string.IsNullOrEmpty(_currentPath))
             {
                 path = $"{_currentPath}.{path}";
@@ -140,16 +143,25 @@ internal sealed class MongoProjectionSelectItemHandler<TSource> : SelectItemHand
             return _currentPath;
         }
 
+        // Fast path: avoids the delegate + iterator + boxed-enumerator allocations of the Select/Join below.
         if (path.Count == 1 && string.IsNullOrEmpty(_currentPath))
         {
-            return path.FirstSegment.Identifier;
+            return ToClrPropertyName(path.FirstSegment);
         }
 
-        var result = path.Select(s => s.Identifier);
+        var result = path.Select(ToClrPropertyName);
         if (!string.IsNullOrEmpty(_currentPath))
         {
             result = result.Prepend(_currentPath);
         }
         return string.Join('.', result);
+
+        string ToClrPropertyName(ODataPathSegment segment) =>
+            segment switch
+            {
+                NavigationPropertySegment navPropertySegment => _edmModel.GetClrPropertyName(navPropertySegment.NavigationProperty),
+                PropertySegment propertySegment => _edmModel.GetClrPropertyName(propertySegment.Property),
+                _ => segment.Identifier
+            };
     }
 }

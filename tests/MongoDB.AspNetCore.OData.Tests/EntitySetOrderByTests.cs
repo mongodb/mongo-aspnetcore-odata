@@ -25,19 +25,21 @@ namespace MongoDB.AspNetCore.OData.Tests;
 public class EntitySetOrderByTests
 {
     [TestMethod]
-    [DataRow("Date", false, DisplayName = "datetime, ascending")]
-    [DataRow("Date", true, DisplayName = "datetime, descending")]
-    [DataRow("Id", false, DisplayName = "long, ascending")]
-    [DataRow("Id", true, DisplayName = "long, descending")]
-    [DataRow("Name", false, DisplayName = "string, ascending")]
-    [DataRow("Name", true, DisplayName = "string, descending")]
-    [DataRow("Population", false, DisplayName = "int, ascending")]
-    [DataRow("Population", true, DisplayName = "int, descending")]
-    [DataRow("Region/Name", false, DisplayName = "nested property, ascending")]
-    [DataRow("Region/Name", true, DisplayName = "nested property, descending")]
-    public async Task OrderByAsync(string propertyPath, bool isDescending)
+    [DataRow("Date", "Date", false, DisplayName = "datetime, ascending")]
+    [DataRow("Date", "Date", true, DisplayName = "datetime, descending")]
+    [DataRow("Id", "Id", false, DisplayName = "long, ascending")]
+    [DataRow("Id", "Id", true, DisplayName = "long, descending")]
+    [DataRow("Name", "Name", false, DisplayName = "string, ascending")]
+    [DataRow("Name", "Name", true, DisplayName = "string, descending")]
+    [DataRow("Population", "Population", false, DisplayName = "int, ascending")]
+    [DataRow("Population", "Population", true, DisplayName = "int, descending")]
+    [DataRow("Density", "PopulationDensity", false, DisplayName = "renamed property, ascending")]
+    [DataRow("Density", "PopulationDensity", true, DisplayName = "renamed property, descending")]
+    [DataRow("Region/Name", "AdminDivision.Name", false, DisplayName = "nested property, ascending")]
+    [DataRow("Region/Name", "AdminDivision.Name", true, DisplayName = "nested property, descending")]
+    public async Task OrderByAsync(string odataPropertyPath, string clrPropertyPath, bool isDescending)
     {
-        var orderByParameter = propertyPath;
+        var orderByParameter = odataPropertyPath;
         if (isDescending)
         {
             orderByParameter = $"{orderByParameter} desc";
@@ -62,10 +64,14 @@ public class EntitySetOrderByTests
         {
             var model = itemNode.Deserialize<City>();
             object value = model;
-            foreach (var property in propertyPath.Split('/'))
+            foreach (var property in clrPropertyPath.Split('.'))
             {
                 value = value.GetType().GetProperty(property).GetValue(value);
             }
+
+            Assert.IsNotNull(value);
+            var defaultValue = value.GetType().IsValueType ? Activator.CreateInstance(value.GetType()) : null;
+            Assert.AreNotEqual(defaultValue, value, "Value should not be default value");
 
             if (lastValue != null)
             {

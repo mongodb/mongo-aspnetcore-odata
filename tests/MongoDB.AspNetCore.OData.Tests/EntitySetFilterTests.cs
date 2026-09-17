@@ -197,17 +197,17 @@ public class EntitySetFilterTests
         (
             "ceiling",
             "/odata/Cities?$filter=ceiling(Density) eq 1420",
-            item => (int)Math.Ceiling(item.Density) == 1420
+            item => (int)Math.Ceiling(item.PopulationDensity) == 1420
         ),
         (
             "floor",
             "/odata/Cities?$filter=floor(Density) eq 1419",
-            item => (int)Math.Floor(item.Density) == 1419
+            item => (int)Math.Floor(item.PopulationDensity) == 1419
         ),
         (
             "round",
             "/odata/Cities?$filter=round(Density) eq 1420",
-            item => (int)Math.Round(item.Density, 0) == 1420
+            item => (int)Math.Round(item.PopulationDensity, 0) == 1420
         ),
         (
             "add",

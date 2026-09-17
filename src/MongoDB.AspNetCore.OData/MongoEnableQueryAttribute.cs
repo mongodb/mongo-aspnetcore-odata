@@ -13,7 +13,6 @@
 // limitations under the License.
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -21,6 +20,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.OData.Abstracts;
+using Microsoft.AspNetCore.OData.Edm;
 using Microsoft.AspNetCore.OData.Extensions;
 using Microsoft.AspNetCore.OData.Query;
 using Microsoft.AspNetCore.OData.Query.Container;
@@ -198,14 +198,15 @@ public sealed class MongoEnableQueryAttribute : EnableQueryAttribute
             return queryable;
         }
 
+        var model = queryOptions.Context.Model;
         SortDefinition<T> sortDefinition;
         if (key.Count() == 1)
         {
-            sortDefinition = Builders<T>.Sort.Ascending(GetPropertyByName(key.Single().Name));
+            sortDefinition = Builders<T>.Sort.Ascending(GetPropertyByName(model.GetClrPropertyName(key.Single())));
         }
         else
         {
-            var fields = key.Select(k => Builders<T>.Sort.Ascending(GetPropertyByName(k.Name)));
+            var fields = key.Select(k => Builders<T>.Sort.Ascending(GetPropertyByName(model.GetClrPropertyName(k))));
             sortDefinition = Builders<T>.Sort.Combine(fields);
         }
 

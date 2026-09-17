@@ -45,6 +45,16 @@ public class Startup
         modelBuilder.EntitySet<CountryModel>("Countries");
         modelBuilder.EntitySet<PostCodeViewModel>("PostCodes");
 
+        modelBuilder.EntityType<City>()
+            .Property(c => c.PopulationDensity)
+            .Name = "Density";
+        modelBuilder.EntityType<City>()
+            .HasOptional(c => c.AdminDivision)
+            .Name = "Region";
+        modelBuilder.EntityType<PostCodeViewModel>()
+            .Property(p => p.PostCodeId)
+            .Name = "CodeId";
+
         services.AddControllers().AddOData(
             options =>
             {

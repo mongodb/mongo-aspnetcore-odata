@@ -14,6 +14,7 @@
 
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OData.Routing.Controllers;
 using MongoDB.Bson.Serialization.Attributes;
@@ -50,6 +51,9 @@ public class PostCodeViewModel
 
     [Key]
     [BsonElement("Code")]
-    public string CodeId { get; set; }
+    // This attribute is only needed to let MongoDB.AspNetCore.OData.Tests consume the same models.
+    // Both OData and MongoDB.Driver ignore this attribute. OData property is renamed via code in Startup.cs.
+    [JsonPropertyName("CodeId")]
+    public string PostCodeId { get; set; }
 }
 
