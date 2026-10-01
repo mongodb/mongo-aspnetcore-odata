@@ -142,10 +142,23 @@ functions:
         file: ./mongo-aspnetcore-odata/build/test-results/TEST*.xml
 
   bootstrap-mongo-orchestration:
+    # AWS credentials let mongodl download "latest" server binaries from the private S3 bucket
+    - command: ec2.assume_role
+      params:
+        role_arn: ${aws_test_secrets_role}
     - command: shell.exec
       params:
+        include_expansions_in_env:
+          - "AWS_ACCESS_KEY_ID"
+          - "AWS_SECRET_ACCESS_KEY"
+          - "AWS_SESSION_TOKEN"
         script: |
           ${PREPARE_SHELL}
+          # TODO(DRIVERS-3663): remove once fixed upstream. mongodl's GPG check of "latest" downloads puts its
+          # gpg homedir under $TMPDIR; ours is long enough that gpg-agent's socket path exceeds the OS limit.
+          if [ "${VERSION}" = "latest" ]; then
+            unset TMPDIR
+          fi
           MONGODB_VERSION=${VERSION} \
           STORAGE_ENGINE=${STORAGE_ENGINE} \
           ORCHESTRATION_FILE=${ORCHESTRATION_FILE} \
